@@ -1,27 +1,54 @@
 # DiplomaThesis
 
-## Datasets used
-- BRCA
-- data supplied by the IDA lab at CVUT FEL
+## Introduction
+- something about 
 
-## Baseline methods
+## Datasets used
+- BRCA:
+  - analysis of breast cancer tissue and its classification into 5 subtypes, normal, basal-like, luminal A, luminal B and HER2-enriched
+  - there are two sets of labels
+    - PAM50_mRNA_nature2012
+      - 522 samples
+      - Basal-like: 98, HER2-enriched: 58, Luminal A: 231, Luminal B: 127, Normal-like: 8
+      - normal only 8 samples -> so we can safely ignore it and use only the other 4 subtypes for the classification
+    - PAM50Call_RNAseq
+      - 900 samples
+      - Basal: 142, Her2: 67, LumA: 434, LumB: 194, Normal: 119
+      - from what I was able to [find](https://groups.google.com/g/ucsc-cancer-genomics-browser/c/p3up0ZIxAj0?pli=1) these should be preliminary calls based on illumina HiSeq 2000 RNA sequencing platform and likely more noisy than the labels reported with the paper, however other works seem to use these too
+  - can be obtained from http://xena.ucsc.edu/public
+  - introduced in this paper from 2012 https://www.nature.com/articles/nature11412#change-history
+  - seems like a classical benchmark, many of the papers use it so it seems useful to choose this to compare performance against them
+- data supplied by the IDA lab at CVUT FEL
+  - #TODO is there a publication or any associated info with this data?
+- other datasets which could be of use
+  - ROSMAP - alzheimer disease, binary task, AD (alzheimer disease) vs NC (normal controls)
+    - besides BRCA probably the second most used one
+  - KIPAN - liver cancer subtype classification, also ofthen used
+  - LGG - lower grade glycoma classification by four grades given by WHO
+    - (from the papers its not clear to me how to split the data into classes ?)
+    - also often used and obtainable from http://xena.ucsc.edu/public
+
+## Baseline methods & results
+- KNN
+- SVM
+- XGBoost
 
 ## Graph neural networks
-- GCN equations
+- **GCN equation in two steps**
 	- **Aggregate information from neighbours**
 		- in the easiest form this could be an average or we could use ...
 		- a weighted sum $$h_{n(v)}=\sum_{u\in N(v)}w_{u,v}h_u$$
 			- where $w_{u,v}$ is computed as a product of roots of inverse degrees $$w_{u,v}=\sqrt{\frac1{d_u}}\sqrt{\frac1{d_v}}$$
 	- **Pass the aggregated vector through a MLP**
 		- $h_{n+1(v)}=\sigma(W h_{n(v)})$
-		- in each layer the same network is applied to all of the nodes
-		- and usually we also use a different weight matrix
+		- in each layer the same weighs are reused for all of the nodes
+		- and usually we also use a different weight matrix for the self loop
 - **Relational GCNs**
 	- relation is a triplet of $$\text{node type}\xrightarrow{\text{edge type}} \text{node type}$$
 	- in RGCNs we have a different weight matrix for each of these triplets, then the update equation looks like $$h_i^{l+1}=\sigma\left(W_0^lh^l_i+\sum_{r\in R}\sum_{j\in N^r_i}\frac1{c_{ir}}W_r^lh_j^l\right)$$
-	- and we can also introduce regularization
+	- and we can (and usually we do) also introduce regularization because the number of relations can be large
 	- **Block diagonal matrix**
-		- we allow the matrices $W_r$ to be block diagonal, to reduce the number of parameters (and allow only neighbouring embeddings to interact)
+		- we allow the matrices $W_r$ to be block diagonal, to reduce the number of parameters (and allow only positions close in the embedding to interact)
 	- **Basis learning**
 		- i.e. we put a cap on how. many base weight matrices $V_b$ we want per layer and compose the necessary matrices $W_r$ out of them via linear combination with learned coefficients, this is useful in case we have a heterogenous graph with many relations $$W_r^l=\sum_{b=1}^Ba_{rb}^lV_b^l$$
 - **Attention GNNs**
@@ -38,5 +65,59 @@
 	- we can also have multiple attention heads, meaning in each layer we have a set of weights $a^k,W^k$ for $k\in\{1,…,n\}$ for multiple attention heads
 	- and we can concatenate / sum the output from each head into a new vector
 
-## Baseline results
+## Proposed method employing interaction data
+- wasn't yet able to find a paper using this (besides GLUE but that is a slightly different task)
 
+## Results
+- TBA
+
+## Results of a baseline method 
+- TBA
+
+## List of papers which could be of use, and their comparisions
+- [LRRNS](https://link.springer.com/chapter/10.1007/978-3-319-63342-8_9) 
+- [EMOGI](https://www.nature.com/articles/s42256-021-00325-y)
+	- [github repo](https://github.com/schulter/EMOGI)
+- [GNN with multiple prior knowledge](https://dr.ntu.edu.sg/bitstream/10356/171101/2/Graph%20Neural%20Networks%20with%20Multiple%20PriorKnowledge%20for%20Multi-Omics%20Data%20Analysis.pdf)
+- [Making multi-omics data accessible to researchers](https://www.nature.com/articles/s41597-019-0258-4)
+- [DIABLO](https://pubmed.ncbi.nlm.nih.gov/30657866/)
+- [GLUE](https://www.nature.com/articles/s41587-022-01284-4)
+- [MOVE](https://github.com/RasmussenLab/MOVE)
+- [SALMON](https://huangzhii.github.io/SALMON/)
+- [LSTM+VAE for clustering multi-omics data](https://github.com/bilalmirza8519/LSTM-VAE)
+- [DeepOmix](https://pubmed.ncbi.nlm.nih.gov/34093987/)
+	- [github repo](https://github.com/CancerProfiling/DeepOmix#deepomix-a-multi-omics-scalable-and-interpretable-deep-learning-framework-and-application-in-cancer-survival-analysis)
+- [GCN cancer](https://www.frontiersin.org/articles/10.3389/fphy.2020.00203/full)
+	- [github repo](https://github.com/RicardoRamirez2020/GCN_Cancer)
+- [DeepProg](https://genomemedicine.biomedcentral.com/articles/10.1186/s13073-021-00930-x)
+	- [github repo](https://github.com/lanagarmire/DeepProg)
+- [Deep Learning-Based Multi-Omics Integration Robustly Predicts Survival in Liver Cancer](https://pubmed.ncbi.nlm.nih.gov/28982688/)
+- [Multi-omics integration method based on attention deep learning network for biomedical data classification](https://www.sciencedirect.com/science/article/pii/S0169260723000445?via%3Dihub)
+- [Mogonet](https://www.nature.com/articles/s41467-021-23774-w)
+	- acc on BRCA
+		- 0.829 ± 0.018 according to the paper 
+		- 0.7886 ± 0.021 according to MOGLAM
+- [MoGCN](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8847688/)
+	- [repo](https://github.com/Lifoof/MoGCN)
+	- used BRCA, but the results seem a little strange? both for the baselines and the final method, did they use a variant of the data?
+	- acc on BRCA
+		- 90 % according to the paper
+		- 81.9 % acc according to MOGLAM
+- [MODILM](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10161645/)
+	- essentially MOGONET with graph attention networks + MLP instead of the GCNs
+	- acc on BRCA
+		- 0.845
+- [MOGLAM](https://www.sciencedirect.com/science/article/pii/S0010482523007680?via%3Dihub#fig4)
+	- they construct the patient similarity graph dynamically via learnable parameters, meaning that the graph structure is learned
+	- they use attention to learn how much should each omic data type contribute to the classification
+	- and multi-headed attention to explore correlation accross different omics data
+	- acc on BRCA
+		- 0.838 according to the paper
+	- [github repo](https://github.com/Ouyang-Dong/MOGLAM)
+- [MOALDN](https://www.sciencedirect.com/science/article/abs/pii/S0169260723000445)
+	- dim. red of the patient features via a MLP
+	- patient correlation via the attention mechanism
+	- omics correlation via multi-omics correlation discovery network
+	- acc on BRCA
+		- 0.8297 ± 1.35
+		- according to the paper, limited comparision against other methods
