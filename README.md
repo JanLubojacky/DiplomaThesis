@@ -1,7 +1,10 @@
 # DiplomaThesis
 
-## Introduction
-- something about 
+## Introduction & literature
+- what could this analysis bring
+- significance of learning biomarkers
+- sequencing methods overview
+- interaction data
 
 ## Datasets used
 - BRCA:
