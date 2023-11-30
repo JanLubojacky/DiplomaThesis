@@ -32,9 +32,25 @@
     - also often used and obtainable from http://xena.ucsc.edu/public
 
 ## Baseline methods & results
-- KNN
-- SVM
-- XGBoost
+- Note about parameter tuning
+  - since we are dealing with a small dataset and the variance in predictions for each fold is fairly high this makes it hard to tune the parameters as the high variance makes it harder to estimate whether some parameters are truly performing well or whether it is just a random fluctuation
+
+**Experiment design**
+- the data were log transformed via $$y=\log_2(x+1)$$
+- normalized to zero mean and unit variance
+- half of the data was used for parameter tuning and the other half for the final evaluation
+
+**KNN**
+  - number of neighbours estimated via cross validation
+  - final evaluation was done on the test set via 50-fold random-split stratified cross validation to try and obtain some reasonable estimate of the variance,  which was very high for this dataset
+
+**SVM with linear kernel**
+- 2 parameters tuned
+  - C - regularization parameter, estimated via cross validation from the interval $[10^{-6}, 10^2]$ (sampled logarithmically)
+  - number of predictors to use estimated from the set $\{50, 100, 500\}$
+
+**XGBoost**
+  - xgboost has many parameters, as such it is benefitial tu use a library such as [optuna](CITATION) which allows the use of more advanced optimization techniques such as TPE (Tree-structured Parzen Estimator) to explore the parameter space more efficently and greatly speed up the parameter tuning.
 
 ## Graph neural networks
 - **GCN equation in two steps**
@@ -74,8 +90,54 @@
 ## Results
 - TBA
 
-## Results of a baseline method 
-- TBA
+## Results of a baseline methods
+> todo: add params for XGboost in appendix
+  - **IDA lab dataset - Disease**
+	| Method | Accuracy | F1 macro | F1 weighted | Parameters |
+	| --- | --- | --- | --- | - |
+	| KNN | 0.84 ± 0.10 | 0.67 ± 0.22 | 0.83 ± 0.10 | k = 3 |
+	| SVM | 0.97 ± 0.05 | 0.96 ± 0.07 | 0.97 ± 0.05 | C = 0.001, 50 features |
+	| XGBoost | 0.89 ± 0.06 | 0.80 ± 0.11 | 0.88 ± 0.07 |
+    | Mogonet | | | |
+  - **IDA lab dataset - Risk**
+	| Method | Accuracy | F1 macro | F1 weighted | Parameters |
+	| --- | --- | --- | --- | - |
+	| KNN | 0.50 ± 0.08 | 0.48 +/- 0.08 | 0.48 +/- 0.08 | k = 3 |
+	| SVM | 0.57 ± 0.20 | 0.52 ± 0.18 | 0.51 ± 0.17 | C = 5, features = 500 |
+	| XGBoost | 53 ± 0.08 | 0.44 ± 0.07 | 0.49 ± 0.07 |
+    | Mogonet | | | |
+ 
+- **IDA lab dataset - Mutation**
+	| Method | Accuracy | F1 macro | F1 weighted | Parameters |
+	| --- | --- | --- | --- | - |
+	| KNN | 0.65 ± 0.07 | 0.49 +/- 0.10 | 0.62 +/- 0.07 | best k = 2 |
+  | SVM | 0.69 ± 0.10 | 0.40 ± 0.15 | 0.60 ± 0.13 | best C = 0.1 , features = 500 |
+	| XGBoost | 0.67 ± 0.08 | 0.39 ± 0.16 | 0.60 ± 0.09 |
+  | Mogonet | | | |
+
+- **BRCA**
+	| Accuracy | F1 macro | F1 weighted |
+	| --- | --- | --- |
+	| KNN | | | |
+	| SVM | | | |
+	| XGBoost | | | |
+    | Mogonet | | | |
+
+- **KIPAN**
+  | Accuracy | F1 macro | F1 weighted |
+	| --- | --- | --- |
+	| KNN | | | |
+	| SVM | | | |
+	| XGBoost | | | |
+    | Mogonet | | | |
+
+- **ROSMAP**
+	| Accuracy | F1 macro | F1 weighted |
+	| --- | --- | --- |
+	| KNN | | | |
+	| SVM | | | |
+	| XGBoost | | | |
+    | Mogonet | | | |
 
 ## List of papers which could be of use, and their comparisions
 - [LRRNS](https://link.springer.com/chapter/10.1007/978-3-319-63342-8_9) 
