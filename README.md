@@ -98,14 +98,14 @@
 	| KNN | 0.84 ± 0.10 | 0.67 ± 0.22 | 0.83 ± 0.10 | k = 3 |
 	| SVM | 0.97 ± 0.05 | 0.96 ± 0.07 | 0.97 ± 0.05 | C = 0.001, 50 features |
 	| XGBoost | 0.89 ± 0.06 | 0.80 ± 0.11 | 0.88 ± 0.07 |
-    | Mogonet | | | |
+    | Mogonet | 0.938 | 0.928 | 0.816 |
   - **IDA lab dataset - Risk**
 	| Method | Accuracy | F1 macro | F1 weighted | Parameters |
 	| --- | --- | --- | --- | - |
 	| KNN | 0.50 ± 0.08 | 0.48 +/- 0.08 | 0.48 +/- 0.08 | k = 3 |
 	| SVM | 0.57 ± 0.20 | 0.52 ± 0.18 | 0.51 ± 0.17 | C = 5, features = 500 |
 	| XGBoost | 53 ± 0.08 | 0.44 ± 0.07 | 0.49 ± 0.07 |
-    | Mogonet | | | |
+    | Mogonet | 0.938 | 0.936 | 0.945 |
  
 - **IDA lab dataset - Mutation**
 	| Method | Accuracy | F1 macro | F1 weighted | Parameters |
@@ -113,7 +113,7 @@
 	| KNN | 0.65 ± 0.07 | 0.49 +/- 0.10 | 0.62 +/- 0.07 | best k = 2 |
   | SVM | 0.69 ± 0.10 | 0.40 ± 0.15 | 0.60 ± 0.13 | best C = 0.1 , features = 500 |
 	| XGBoost | 0.67 ± 0.08 | 0.39 ± 0.16 | 0.60 ± 0.09 |
-  | Mogonet | | | |
+  | Mogonet | 0.938 | 0.935 | 0.937 |
 
 - **BRCA**
 	| Accuracy | F1 macro | F1 weighted |
