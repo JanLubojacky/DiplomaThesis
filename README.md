@@ -32,6 +32,9 @@
     - also often used and obtainable from http://xena.ucsc.edu/public
 
 ## Baseline methods & results
+- Data preprocessing
+  - RNA expression counts, raw counts vs TPMs, RPKM or FPKM, raw counts are not a good choice for comparisions between different samples, because they do not account for differences in transcript length, total number of reads per samples, and sequencing biases ... [link](https://stats.stackexchange.com/questions/561987/should-i-use-raw-counts-tpms-or-rpkm-gene-expression-values-for-training-ml-mo)
+
 - Note about parameter tuning
   - since we are dealing with a small dataset and the variance in predictions for each fold is fairly high this makes it hard to tune the parameters as the high variance makes it harder to estimate whether some parameters are truly performing well or whether it is just a random fluctuation
 
@@ -98,14 +101,15 @@
 	| KNN | 0.84 ± 0.10 | 0.67 ± 0.22 | 0.83 ± 0.10 | k = 3 |
 	| SVM | 0.97 ± 0.05 | 0.96 ± 0.07 | 0.97 ± 0.05 | C = 0.001, 50 features |
 	| XGBoost | 0.89 ± 0.06 | 0.80 ± 0.11 | 0.88 ± 0.07 |
-    | Mogonet | 0.938 | 0.928 | 0.816 |
-  - **IDA lab dataset - Risk**
+    | MOGONET | 0.954 ± 0.039 | 0.852 ± 0.129 | 0.944 ± 0.048 |
+
+- **IDA lab dataset - Risk**
 	| Method | Accuracy | F1 macro | F1 weighted | Parameters |
 	| --- | --- | --- | --- | - |
 	| KNN | 0.50 ± 0.08 | 0.48 +/- 0.08 | 0.48 +/- 0.08 | k = 3 |
 	| SVM | 0.57 ± 0.20 | 0.52 ± 0.18 | 0.51 ± 0.17 | C = 5, features = 500 |
 	| XGBoost | 53 ± 0.08 | 0.44 ± 0.07 | 0.49 ± 0.07 |
-    | Mogonet | 0.938 | 0.936 | 0.945 |
+    | MOGONET | 0.983 ± 0.028 | 0.984 ± 0.025| 0.983 ± 0.028|
  
 - **IDA lab dataset - Mutation**
 	| Method | Accuracy | F1 macro | F1 weighted | Parameters |
@@ -113,15 +117,24 @@
 	| KNN | 0.65 ± 0.07 | 0.49 +/- 0.10 | 0.62 +/- 0.07 | best k = 2 |
   | SVM | 0.69 ± 0.10 | 0.40 ± 0.15 | 0.60 ± 0.13 | best C = 0.1 , features = 500 |
 	| XGBoost | 0.67 ± 0.08 | 0.39 ± 0.16 | 0.60 ± 0.09 |
-  | Mogonet | 0.938 | 0.935 | 0.937 |
+  | MOGONET | 0.946 ± 0.033 | 0.932 ± 0.045| 0.942 ± 0.038|
 
 - **BRCA**
 	| Accuracy | F1 macro | F1 weighted |
 	| --- | --- | --- |
-	| KNN | | | |
+	| KNN | 0.74 ± 0.02 | 0.67 ± 0.02 | 0.72 ± 0.02 |
 	| SVM | | | |
 	| XGBoost | | | |
-    | Mogonet | | | |
+    | MOGONET | 0.774 ± 0.031 | 0.719 ± 0.047 | 0.768 ± 0.038 |
+    
+
+- **ROSMAP**
+	| Accuracy | F1 macro | F1 weighted |
+	| --- | --- | --- |
+	| KNN | 0.67 ± 0.03 | 0.66 ± 0.03 | 0.66 ± 0.03 |
+	| SVM | | | |
+	| XGBoost | | | |
+    | MOGONET | 0.806 ± 0.030 | 0.805 ± 0.031  | 0.0805 ± 0.030 |
 
 - **KIPAN**
   | Accuracy | F1 macro | F1 weighted |
@@ -129,16 +142,7 @@
 	| KNN | | | |
 	| SVM | | | |
 	| XGBoost | | | |
-    | Mogonet | | | |
-
-- **ROSMAP**
-	| Accuracy | F1 macro | F1 weighted |
-	| --- | --- | --- |
-	| KNN | | | |
-	| SVM | | | |
-	| XGBoost | | | |
-    | Mogonet | | | |
-
+    | MOGONET | | | |
 ## List of papers which could be of use, and their comparisions
 - [LRRNS](https://link.springer.com/chapter/10.1007/978-3-319-63342-8_9) 
 - [EMOGI](https://www.nature.com/articles/s42256-021-00325-y)
