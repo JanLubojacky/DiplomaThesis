@@ -13,73 +13,73 @@ def KNN_evaluation(X, y, verbose=True):
     # train test split
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, stratify=y)
 
-    # Instantiate a KNN classifier
-    knn = KNeighborsClassifier()
+    # # Instantiate a KNN classifier
+    # knn = KNeighborsClassifier()
 
-    # Set up the parameter grid for GridSearchCV
-    param_grid = {"n_neighbors": np.arange(1, 20)}
+    # # Set up the parameter grid for GridSearchCV
+    # param_grid = {"n_neighbors": np.arange(1, 20)}
 
-    # Define the scoring metrics
-    scoring_metrics = {
-        "accuracy": "accuracy",
-        "f1_macro": "f1_macro",
-        "f1_weighted": "f1_weighted",
-    }
+    # # Define the scoring metrics
+    # scoring_metrics = {
+    #     "accuracy": "accuracy",
+    #     "f1_macro": "f1_macro",
+    #     "f1_weighted": "f1_weighted",
+    # }
 
-    # Use GridSearchCV to find the best k
-    grid_search = GridSearchCV(
-        knn, param_grid, scoring=scoring_metrics, cv=5, refit="f1_weighted", n_jobs=-1
-    )
-    grid_search.fit(X_train, y_train)
+    # # Use GridSearchCV to find the best k
+    # grid_search = GridSearchCV(
+    #     knn, param_grid, scoring=scoring_metrics, cv=5, refit="f1_weighted", n_jobs=-1
+    # )
+    # grid_search.fit(X_train, y_train)
 
     # Get the results of the grid search
-    best_k = grid_search.best_params_["n_neighbors"]
 
-    print("Best k: ", best_k)
+    for best_k in range(1, 10):
+        # best_k = 3# grid_search.best_params_["n_neighbors"]
 
-    # Train the model with the best k
-    best_knn = KNeighborsClassifier(n_neighbors=best_k)
+        print("Best k: ", best_k)
 
-    # Evaluate the model using cross-validation
-    # metrics = cross_validate(
-    #     best_knn, X_test, y_test, cv=10, scoring=scoring_metrics, n_jobs=-1
-    # )
-    k = 50
-    metrics = {
-        "test_accuracy": np.zeros(k),
-        "test_f1_macro": np.zeros(k),
-        "test_f1_weighted": np.zeros(k),
-    }
-    for i in range(k):
-        # split data into train and test
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.5, stratify=y
-        )
-        # fit the model on the training data
-        best_knn.fit(X_train, y_train)
-        # predict on the test data
-        y_pred = best_knn.predict(X_test)
-        # calculate the metrics
-        metrics["test_accuracy"][i] = accuracy_score(y_test, y_pred)
-        metrics["test_f1_macro"][i] = f1_score(y_test, y_pred, average="macro")
-        metrics["test_f1_weighted"][i] = f1_score(y_test, y_pred, average="weighted")
+        # Train the model with the best k
+        best_knn = KNeighborsClassifier(n_neighbors=best_k)
 
-    # print(metrics)
+        # Evaluate the model using cross-validation
+        # metrics = cross_validate(
+        #     best_knn, X_test, y_test, cv=10, scoring=scoring_metrics, n_jobs=-1
+        # )
+        k = 20
+        metrics = {
+            "test_accuracy": np.zeros(k),
+            "test_f1_macro": np.zeros(k),
+            "test_f1_weighted": np.zeros(k),
+        }
+        for i in range(k):
+            # split data into train and test
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.4, stratify=y
+            )
+            # fit the model on the training data
+            best_knn.fit(X_train, y_train)
+            # predict on the test data
+            y_pred = best_knn.predict(X_test)
+            # calculate the metrics
+            metrics["test_accuracy"][i] = accuracy_score(y_test, y_pred)
+            metrics["test_f1_macro"][i] = f1_score(y_test, y_pred, average="macro")
+            metrics["test_f1_weighted"][i] = f1_score(y_test, y_pred, average="weighted")
 
-    if verbose:
-        # Display the results
-        print("\nCross Validation Results:")
-        print(
-            f'test_accuracy: {metrics["test_accuracy"].mean():.2f} +/- {metrics["test_accuracy"].std():.2f}'
-        )
-        print(
-            f'F1 Macro: {metrics["test_f1_macro"].mean():.2f} +/- {metrics["test_f1_macro"].std():.2f}'
-        )
-        print(
-            f'F1 Weighted: {metrics["test_f1_weighted"].mean():.2f} +/- {metrics["test_f1_weighted"].std():.2f}'
-        )
-        print(f"| KNN | {metrics['test_accuracy'].mean():.2f} ± {metrics['test_accuracy'].std():.2f} | {metrics['test_f1_macro'].mean():.2f} +/- {metrics['test_f1_macro'].std():.2f} | {metrics['test_f1_weighted'].mean():.2f} +/- {metrics['test_f1_weighted'].std():.2f}")
 
+        if verbose:
+            # Display the results
+            print("Cross Validation Results:")
+            # print(
+            #     f'test_accuracy: {metrics["test_accuracy"].mean():.2f} +/- {metrics["test_accuracy"].std():.2f}'
+            # )
+            # print(
+            #     f'F1 Macro: {metrics["test_f1_macro"].mean():.2f} +/- {metrics["test_f1_macro"].std():.2f}'
+            # )
+            # print(
+            #     f'F1 Weighted: {metrics["test_f1_weighted"].mean():.2f} +/- {metrics["test_f1_weighted"].std():.2f}'
+            # )
+            print(f"| KNN | {metrics['test_accuracy'].mean():.2f} ± {metrics['test_accuracy'].std():.2f} | {metrics['test_f1_macro'].mean():.2f} +/- {metrics['test_f1_macro'].std():.2f} | {metrics['test_f1_weighted'].mean():.2f} +/- {metrics['test_f1_weighted'].std():.2f}\n")
     return (
         metrics["test_f1_weighted"].mean()
         + metrics["test_accuracy"].mean()

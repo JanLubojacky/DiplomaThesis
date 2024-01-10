@@ -126,6 +126,7 @@
 	| SVM | | | |
 	| XGBoost | | | |
     | MOGONET | 0.774 ± 0.031 | 0.719 ± 0.047 | 0.768 ± 0.038 |
+    | MOGLAM | 0.824 ± 0.017 | 0.831 ± 0.016| 0.807 ± 0.024|
     
 
 - **ROSMAP**
@@ -162,6 +163,8 @@
 	- [github repo](https://github.com/lanagarmire/DeepProg)
 - [Deep Learning-Based Multi-Omics Integration Robustly Predicts Survival in Liver Cancer](https://pubmed.ncbi.nlm.nih.gov/28982688/)
 - [Multi-omics integration method based on attention deep learning network for biomedical data classification](https://www.sciencedirect.com/science/article/pii/S0169260723000445?via%3Dihub)
+- [Model evaluation](https://arxiv.org/pdf/1811.12808.pdf)
+## GNN papers comparision
 - [Mogonet](https://www.nature.com/articles/s41467-021-23774-w)
 	- acc on BRCA
 		- 0.829 ± 0.018 according to the paper 
@@ -190,3 +193,8 @@
 	- acc on BRCA
 		- 0.8297 ± 1.35
 		- according to the paper, limited comparision against other methods
+- [moBRCA](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10131354/)
+	- claims better performance than mogonet
+- [MPK-GNN](https://ieeexplore.ieee.org/document/10148642/references#references)
+	- they seem to use prior knowledge in the form of interaction networks but the paper seems a little confusing
+- [Model Evaluation, Model Selection, and Algorithm Selection in Machine Learning](https://arxiv.org/abs/1811.12808) other methods
