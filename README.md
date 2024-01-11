@@ -1,5 +1,19 @@
 # DiplomaThesis
 
+## Progress since last meeting
+- [x] improved preprocessing
+	- log transform
+	- variation filtering
+	- read count filtering q?
+	- this improved accuracy of baseline methods slightly
+- able to built the interaction graphs
+  - using bioGRID, miRDB and string
+  - q? Is there a way to quantify the interactions?
+- [ ] spent some time trying to get GLUE to work, this was not very successful
+- [ ] found new methods which are designed to use interaction networks, this seems more promising, but it is not finished yet, need ~one more week
+  - [A Multimodal Graph Neural Network Framework for Cancer Molecular Subtype Classification](https://arxiv.org/pdf/2302.12838.pdf)
+  - 
+
 ## Introduction & literature
 - what could this analysis bring
 - significance of learning biomarkers
@@ -34,6 +48,7 @@
 ## Baseline methods & results
 - Data preprocessing
   - RNA expression counts, raw counts vs TPMs, RPKM or FPKM, raw counts are not a good choice for comparisions between different samples, because they do not account for differences in transcript length, total number of reads per samples, and sequencing biases ... [link](https://stats.stackexchange.com/questions/561987/should-i-use-raw-counts-tpms-or-rpkm-gene-expression-values-for-training-ml-mo)
+- improve preprocessing with median absolute deviation (MAD) most-variable features.
 
 - Note about parameter tuning
   - since we are dealing with a small dataset and the variance in predictions for each fold is fairly high this makes it hard to tune the parameters as the high variance makes it harder to estimate whether some parameters are truly performing well or whether it is just a random fluctuation
@@ -120,7 +135,7 @@
   | MOGONET | 0.946 ± 0.033 | 0.932 ± 0.045| 0.942 ± 0.038|
 
 - **BRCA**
-	| Accuracy | F1 macro | F1 weighted |
+	| Method | Accuracy | F1 macro | F1 weighted |
 	| --- | --- | --- |
 	| KNN | 0.74 ± 0.02 | 0.67 ± 0.02 | 0.72 ± 0.02 |
 	| SVM | | | |
@@ -130,7 +145,7 @@
     
 
 - **ROSMAP**
-	| Accuracy | F1 macro | F1 weighted |
+	| Method | Accuracy | F1 macro | F1 weighted |
 	| --- | --- | --- |
 	| KNN | 0.67 ± 0.03 | 0.66 ± 0.03 | 0.66 ± 0.03 |
 	| SVM | | | |
@@ -138,7 +153,7 @@
     | MOGONET | 0.806 ± 0.030 | 0.805 ± 0.031  | 0.0805 ± 0.030 |
 
 - **KIPAN**
-  | Accuracy | F1 macro | F1 weighted |
+  | Method | Accuracy | F1 macro | F1 weighted |
 	| --- | --- | --- |
 	| KNN | | | |
 	| SVM | | | |
@@ -197,4 +212,12 @@
 	- claims better performance than mogonet
 - [MPK-GNN](https://ieeexplore.ieee.org/document/10148642/references#references)
 	- they seem to use prior knowledge in the form of interaction networks but the paper seems a little confusing
-- [Model Evaluation, Model Selection, and Algorithm Selection in Machine Learning](https://arxiv.org/abs/1811.12808) other methods
+  - also the comparisions are weird, they seem to use some form of semi-supervised learning?
+- [A Multimodal Graph Neural Network Framework for Cancer Molecular Subtype Classification](https://arxiv.org/pdf/2302.12838.pdf)
+  - integration of molecular data but no source code, good results reported in MKP-GNN on the CMSC method which should be this paper
+- [Model Evaluation, Model Selection, and Algorithm Selection in Machine Learning](https://arxiv.org/abs/1811.12808) 
+
+## Databases
+[bioGRID](https://thebiogrid.org) -> for gene interactions
+[miRDB](https://mirdb.org) -> for miRNA
+[string](https://string-db.org) -> for protein interactions
