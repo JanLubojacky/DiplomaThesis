@@ -12,7 +12,7 @@
 - [ ] spent some time trying to get GLUE to work, this was not very successful
 - [ ] found new methods which are designed to use interaction networks, this seems more promising, but it is not finished yet, need ~one more week
   - [A Multimodal Graph Neural Network Framework for Cancer Molecular Subtype Classification](https://arxiv.org/pdf/2302.12838.pdf)
-  - 
+  - [MPK-GNN](https://ieeexplore.ieee.org/document/10148642/references#references)
 
 ## Introduction & literature
 - what could this analysis bring
