@@ -1,3 +1,4 @@
+.DS_STORE
 MOGLAM
 MOGONET
 brca_data
@@ -5,3 +6,7 @@ MoGCN
 GLUE
 MPK-GNN
 BIOGRID-*
+*.txt
+*.csv
+*.xlsx
+*.tsv
