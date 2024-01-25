@@ -142,7 +142,7 @@
   | XGBoost | | | |
   | MOGONET | 0.774 ± 0.031 | 0.719 ± 0.047 | 0.768 ± 0.038 |
   | MOGLAM | 0.824 ± 0.017 | 0.831 ± 0.016| 0.807 ± 0.024 |
-  | MPK-GNN (interactions)| 0.747 ± 0.492| 0.712 ± 0.453 | 0.747 ± 0.279 |
+  | MPK-GNN (interactions)| 0.747 ± 0.049| 0.712 ± 0.045 | 0.747 ± 0.28 |
 
 - **ROSMAP**
 	| Method | Accuracy | F1 macro | F1 weighted |
