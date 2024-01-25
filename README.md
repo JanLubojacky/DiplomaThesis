@@ -135,14 +135,14 @@
   | MOGONET | 0.946 ± 0.033 | 0.932 ± 0.045| 0.942 ± 0.038|
 
 - **BRCA**
-| Method | Accuracy | F1 macro | F1 weighted |
+  | Method | Accuracy | F1 macro | F1 weighted |
   | --- | --- | --- | --- |
-| KNN | 0.74 ± 0.02 | 0.67 ± 0.02 | 0.72 ± 0.02 |
-| SVM | | | |
-| XGBoost | | | |
-| MOGONET | 0.774 ± 0.031 | 0.719 ± 0.047 | 0.768 ± 0.038 |
-| MOGLAM | 0.824 ± 0.017 | 0.831 ± 0.016| 0.807 ± 0.024 |
-| MPK-GNN (interactions)| 0.747 ± 0.492| 0.712 ± 0.453 | 0.747 ± 0.279 |
+  | KNN | 0.74 ± 0.02 | 0.67 ± 0.02 | 0.72 ± 0.02 |
+  | SVM | | | |
+  | XGBoost | | | |
+  | MOGONET | 0.774 ± 0.031 | 0.719 ± 0.047 | 0.768 ± 0.038 |
+  | MOGLAM | 0.824 ± 0.017 | 0.831 ± 0.016| 0.807 ± 0.024 |
+  | MPK-GNN (interactions)| 0.747 ± 0.492| 0.712 ± 0.453 | 0.747 ± 0.279 |
 
 - **ROSMAP**
 	| Method | Accuracy | F1 macro | F1 weighted |
