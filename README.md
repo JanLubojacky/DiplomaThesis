@@ -9,10 +9,12 @@
 - able to built the interaction graphs
   - using bioGRID, miRDB and string
   - q? Is there a way to quantify the interactions?
-- [ ] spent some time trying to get GLUE to work, this was not very successful
+- [x] spent some time trying to get GLUE to work, this was not very successful
 - [ ] found new methods which are designed to use interaction networks, this seems more promising, but it is not finished yet, need ~one more week
   - [A Multimodal Graph Neural Network Framework for Cancer Molecular Subtype Classification](https://arxiv.org/pdf/2302.12838.pdf)
   - [MPK-GNN](https://ieeexplore.ieee.org/document/10148642/references#references)
+
+
 
 ## Introduction & literature
 - what could this analysis bring
@@ -132,17 +134,17 @@
 	| KNN | 0.65 ± 0.07 | 0.49 +/- 0.10 | 0.62 +/- 0.07 | best k = 2 |
   | SVM | 0.69 ± 0.10 | 0.40 ± 0.15 | 0.60 ± 0.13 | best C = 0.1 , features = 500 |
 	| XGBoost | 0.67 ± 0.08 | 0.39 ± 0.16 | 0.60 ± 0.09 |
-  | MOGONET | 0.946 ± 0.033 | 0.932 ± 0.045| 0.942 ± 0.038|
+  | MOGONET | 0.946 ± 0.033 | 0.932 ± 0.045| 0.942 ± 0.038 |
 
 - **BRCA**
   | Method | Accuracy | F1 macro | F1 weighted |
   | --- | --- | --- | --- |
   | KNN | 0.74 ± 0.02 | 0.67 ± 0.02 | 0.72 ± 0.02 |
-  | SVM | | | |
-  | XGBoost | | | |
+  | SVM | 0.729 ± 0.018 | 0.64 ± 0.017 | 0.702 ± 0.017 |
+  | XGBoost | 0.771 ± 0.008 | 0.754 ± 0.01 | 0.701 ± 0.17 |
   | MOGONET | 0.774 ± 0.031 | 0.719 ± 0.047 | 0.768 ± 0.038 |
   | MOGLAM | 0.824 ± 0.017 | 0.831 ± 0.016| 0.807 ± 0.024 |
-  | MPK-GNN (interactions)| 0.747 ± 0.049| 0.712 ± 0.045 | 0.747 ± 0.28 |
+  | MPK-GNN (two omics only)| 0.747 ± 0.049| 0.712 ± 0.045 | 0.747 ± 0.28 |
 
 - **ROSMAP**
 	| Method | Accuracy | F1 macro | F1 weighted |
