@@ -155,6 +155,7 @@
   | --- | --- | --- | --- |
   | KNN | 0.74 ± 0.02 | 0.67 ± 0.02 | 0.72 ± 0.02 |
   | SVM | 0.729 ± 0.018 | 0.64 ± 0.017 | 0.702 ± 0.017 |
+  | Linear SVM | | | 0.7858 +/- 0.0207 |
   | XGBoost | 0.771 ± 0.008 | 0.754 ± 0.01 | 0.701 ± 0.17 |
   | MOGONET | 0.774 ± 0.031 | 0.719 ± 0.047 | 0.768 ± 0.038 |
   | MOGLAM | 0.824 ± 0.017 | 0.831 ± 0.016| 0.807 ± 0.024 |
@@ -254,3 +255,6 @@
 [miRDB](https://mirdb.org) -> for miRNA
 [string](https://string-db.org) -> for protein interactions
 
+
+## KNN evals
+- moglam preprocessed brca, most often the knn param is 3 or 5, performance jumps a bit based on the random seed

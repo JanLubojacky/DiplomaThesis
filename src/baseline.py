@@ -1,8 +1,7 @@
 import numpy as np
 from sklearn.feature_selection import RFE
 from sklearn.metrics import accuracy_score, f1_score
-from sklearn.model_selection import (GridSearchCV, cross_validate,
-                                     train_test_split)
+from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.utils.class_weight import compute_sample_weight
@@ -64,8 +63,9 @@ def KNN_evaluation(X, y, verbose=True):
             # calculate the metrics
             metrics["test_accuracy"][i] = accuracy_score(y_test, y_pred)
             metrics["test_f1_macro"][i] = f1_score(y_test, y_pred, average="macro")
-            metrics["test_f1_weighted"][i] = f1_score(y_test, y_pred, average="weighted")
-
+            metrics["test_f1_weighted"][i] = f1_score(
+                y_test, y_pred, average="weighted"
+            )
 
         if verbose:
             # Display the results
@@ -79,7 +79,9 @@ def KNN_evaluation(X, y, verbose=True):
             # print(
             #     f'F1 Weighted: {metrics["test_f1_weighted"].mean():.2f} +/- {metrics["test_f1_weighted"].std():.2f}'
             # )
-            print(f"| KNN | {metrics['test_accuracy'].mean():.2f} ± {metrics['test_accuracy'].std():.2f} | {metrics['test_f1_macro'].mean():.2f} +/- {metrics['test_f1_macro'].std():.2f} | {metrics['test_f1_weighted'].mean():.2f} +/- {metrics['test_f1_weighted'].std():.2f}\n")
+            print(
+                f"| KNN | {metrics['test_accuracy'].mean():.2f} ± {metrics['test_accuracy'].std():.2f} | {metrics['test_f1_macro'].mean():.2f} +/- {metrics['test_f1_macro'].std():.2f} | {metrics['test_f1_weighted'].mean():.2f} +/- {metrics['test_f1_weighted'].std():.2f}\n"
+            )
     return (
         metrics["test_f1_weighted"].mean()
         + metrics["test_accuracy"].mean()
