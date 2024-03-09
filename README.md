@@ -177,18 +177,19 @@
   | XGBoost | | | |
   | MOGONET | | | |
 
-- Big comparision
+- **BRCA**
   | Method | Accuracy | F1 macro | F1 weighted |
   | --- | --- | --- | --- |
-  | Linear SVM | 0.729 ± 0.018 | 0.64 ± 0.017 | 0.702 ± 0.017 |
-  | KNN | 0.74 ± 0.02 | 0.67 ± 0.02 | 0.72 ± 0.02 |
-  | XGBoost | 0.771 ± 0.008 | 0.754 ± 0.01 | 0.701 ± 0.17 |
-  | Mogonet | 0.7886 ± 0.021 | 0.7740 ± 0.029 | 0.7254 ± 0.037 |
-  | MPK-GNN (2-omics only)| 0.7742 ± 0.034 | 0.7821 ± 0.031 | 0.7365 ± 0.042 |
-  | MOGLAM | 0.8380 ± 0.023 | 0.8456 ± 0.022 | 0.8124 ± 0.028 |
+  | KNN | 0.748 +/- 0.015 | 0.693 +/- 0.026 | 0.740 +/- 0.018 |
+  | MPK-GNN (2-omics only)| 0.774 ± 0.034 | 0.782 ± 0.031 | 0.737 ± 0.042|
+  | XGBoost | 0.776 +/- 0.019 | 0.718 +/- 0.028 | 0.777 +/- 0.017 |
+  | Linear SVM | 0.778 +/- 0.001 | 0.758 +/- 0.015 | 0.784 +/- 0.011 |
+  | MOGONET | 0.781 ± 0.022 | 0.734 ± 0.028| 0.780 ± 0.023|
+  | RBF SVM | 0.823 +/- 0.012 | 0.799 +/- 0.022 | 0.828 +/- 0.013 |
+  | MOGLAM | 0.822 ± 0.014 | 0.831 ± 0.012| 0.801 ± 0.005|
   | Li and Nabavi | 0.864 | 0.875 | - |
 
-## List of papers which could be of use, and their comparisions
+## List of papers which could be of use, and their comparisons
 
 - [LRRNS](https://link.springer.com/chapter/10.1007/978-3-319-63342-8_9)
 - [EMOGI](https://www.nature.com/articles/s42256-021-00325-y)

@@ -15,7 +15,7 @@ from sklearn.svm import SVC, LinearSVC
 def svm_lin_eval(
     X: np.ndarray,
     y: np.ndarray,
-    n_evals: int = 8,
+    n_evals: int = 10,
     n_trials: int = 40,
     C_range: tuple = (1e-3, 1e3),
     test_size: float = 0.3,
@@ -58,9 +58,7 @@ def svm_lin_eval(
 
         svm = LinearSVC(
             C=trial.suggest_float("C", C_range[0], C_range[1], log=True),
-            # loss=trial.suggest_categorical("loss", ["hinge", "squared_hinge"]),
             class_weight=trial.suggest_categorical("class_weight", ["balanced", None]),
-            # penalty=trial.suggest_categorical("penalty", ["l1", "l2"]),
             dual="auto",
         )
 

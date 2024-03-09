@@ -1,7 +1,7 @@
 # TODOs
 
 - [ ] Baseline experiments
-  - [ ] Run on several different datasets
+  - [ ] Run on several different datasets, all the models should be evaluated the same way, e.g. a 10 fold cross validation using random splits, and with the same seed to ensure equal splits
     - [ ] MDS
     - [ ] BRCA
     - [ ] ROSMAP
@@ -15,7 +15,7 @@
     - [ ] ROSMAP
     - [ ] KIPAN
     - [ ] LGG
-- [ ] Bipartite graph architecture
+- Bipartite GNN architecture
   - Input is a bipartite graph with patients on one side and genes / miRNAs on the other side
     - Patient vertices contain information for multiple omic channels
     - Feature vertices contain a vector of ones for start
@@ -23,10 +23,9 @@
       - We add edges between samples and features based on thresholding over/under expression of the features across the different classes
         - this could be also used for some simple feature selection? Select only genes with differential expression across the different classes
       - finally we add edges between samples based on feature interactions such as gene-gene interaction or miRNA-gene interactions
-    - any longest shortest path in this graph is at most 3 edges `sample -> feature -> feature -> sample`, this means that we need 3 layers, with 2 we wouldn't be utilizing the feature-feature interactions as the information trough them wouldnt get to the samples and 4 would cause oversmoothing
-    - It helps to have all the features of the same dimensions, we can use a simple linear layer at the start to scale all the features to the same dimension like a 100 or 50? (this is a hyperparameter we should tune) this could be an autoencoder but it will likely be better to have this learned
+    - any longest shortest path in this graph is at most 3 edges `sample -> feature -> feature -> sample`, this means that we need 3 layers, with 2 we wouldn't be utilizing the feature-feature interactions as the information trough them wouldnt propagate to the samples and 4 would cause oversmoothing
+    - It helps to have all the features of the same dimensions, we can use a simple linear layer at the start to scale all the features to the same dimension like a 100 or 50? (this is a hyperparameter we should tune) this could be an autoencoder but it will likely be better to have this learnedcros
     - We will use a different weight for each modality like in rGCNs
     - We also need to make sure that each feature node receives the correct feature vector, i.e. each sample node will contain several channels of information, (mRNA expression, miRNA expression, DNA methylation, CNA)
-    - Question is, should we split the feature vertices for mRNA expression and DNA methylation / CNA if they are for the same gene? Answer probably yes, each might have different edges with samples
+    - Question is, should we split the feature vertices for mRNA expression and DNA methylation / CNA if they are for the same gene? Answer probably yes, each might have different edges with samples, then we have to make sure that each channel from the sample vertices gets propagated to the correct vertices
     - We will also use attention, it usually has better performance than classical convolution
-    - Then the question is how to integrate the information, 

@@ -5,6 +5,7 @@ brca_data
 MoGCN
 GLUE
 MPK-GNN
+Multimodal-GNN-for-Cancer-Subtype-Clasification
 BIOGRID-*
 *.csv
 *.xlsx

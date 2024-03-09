@@ -34,11 +34,17 @@ def knn_eval(
         Dict
     """
 
-    best_mean = 0.0
-    best_std = 0.0
+    best_results = {
+        "acc": 0.0,
+        "f1_macro": 0.0,
+        "f1_weighted": 0.0,
+        "acc_std": 0.0,
+        "f1_macro_std": 0.0,
+        "f1_weighted_std": 0.0,
+    }
 
     def objective(trial):
-        nonlocal best_mean, best_std
+        nonlocal best_results
 
         sss = StratifiedShuffleSplit(
             n_splits=n_evals, test_size=test_size, random_state=random_state
@@ -71,9 +77,13 @@ def knn_eval(
 
         mean_f1 = f1_scores.mean()
 
-        if mean_f1 > best_mean:
-            best_mean = mean_f1
-            best_std = f1_scores.std()
+        if mean_f1 > best_results["f1_weighted"]:
+            best_results["acc"] = accs.mean()
+            best_results["acc_std"] = accs.std()
+            best_results["f1_macro"] = f1_macros.mean()
+            best_results["f1_macro_std"] = f1_macros.std()
+            best_results["f1_weighted"] = f1_scores.mean()
+            best_results["f1_weighted_std"] = f1_scores.std()
 
         return mean_f1
 
@@ -82,5 +92,7 @@ def knn_eval(
 
     if verbose:
         # print the mean f1 score for the best performing parameter
-        print(f"| KNN | {best_mean:.4f} +/- {best_std:.4f} |")
+        print(
+            f"| KNN | {best_results['acc']:.4f} +/- {best_results['acc_std']:.4f} | {best_results['f1_macro']:.4f} +/- {best_results['f1_macro_std']:.4f} | {best_results['f1_weighted']:.4f} +/- {best_results['f1_weighted_std']:.4f} |"
+        )
         print(f"{study.best_value=}, {study.best_params=}")
