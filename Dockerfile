@@ -1,13 +1,12 @@
+# Use the rocm/dev-ubuntu-22.04:latest image as the base
 FROM rocm/dev-ubuntu-22.04:latest
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        software-properties-common \
-        && \
-    add-apt-repository -y ppa:deadsnakes/ppa && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
-        python3.12 \
-        python3.12-dev
+# Install Python and pip
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
 
-# install packages using pip
+# Optionally, set symbolic links for python and pip
+RUN ln -s /usr/bin/python3 /usr/bin/python \
+    && ln -s /usr/bin/pip3 /usr/bin/pip

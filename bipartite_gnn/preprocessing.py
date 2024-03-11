@@ -1,5 +1,6 @@
 import io
 
+import numpy as np
 import polars as pl
 import requests
 
@@ -7,11 +8,19 @@ import requests
 class FeatureSelection:
     """
     Accepts:
-        data (pl.dataframe) : polars dataframe with shape (n_samples, n_features)
+        data (pl.dataframe) : polars dataframe with shape (n_features, n_samples)
     """
 
-    def __init__(self, data, n_features, var_threshold, min_expression_value=None):
-        self.data = data
+    def __init__(
+        self,
+        data: pl.DataFramea,
+        feature_names,
+        n_features,
+        var_threshold,
+        min_expression_value=None,
+    ):
+        self.data: pl.DataFrame = data
+        self.feature_names = feature_names
         self.n_features = n_features
         self.var_threshold = var_threshold
         if min_expression_value:
@@ -29,12 +38,45 @@ class FeatureSelection:
         """
         order genes by variance and select the ones with the biggest variance
         """
-        return self.data[
-            self.data.var()  # calculates variances
-            .melt()  # create dataframe with column names in "variable" and variances in "value"
-            # sort by variance and select n_features columns with the largest variance
-            .sort(pl.col("value"), descending=True)[: self.n_features]["variable"]
-        ]
+
+        # TODO !!! this has to be redone, but mby keep the existing code
+
+        # return self.data[
+        #     self.data.var()  # calculates variances
+        #     .melt()  # create dataframe with column names in "variable" and variances in "value"
+        #     # sort by variance and select n_features columns with the largest variance
+        #     .sort(pl.col("value"), descending=True)[: self.n_features]["variable"]
+        # ]
+
+    def class_variational_selection(self, labels):
+        """
+        take the genes and compute their average expression for each class
+        then select n_features genes with the largest interclass variance
+
+        as per Li and Nabavi https://arxiv.org/pdf/2302.12838
+        """
+        classes = np.unique(labels)
+
+        # empty matrix genes x classes
+        genes = np.zeros((self.feature_names.shape, len(classes)))
+
+        # add labels to dataframe
+        self.data.with_columns(label=labels)
+
+        # for each label, compute the class mean for each gene
+        for i, c in enumerate(classes):
+            class_data = self.data.filter(pl.col("label") == c)
+            genes[:, i] = class_data.mean().to_numpy()
+
+        gene_vars = genes.var(axis=0)
+
+        # generate ordering of genes based on interclass variance
+        class_variance = np.argsort(gene_vars)
+
+        # and select the top n ones
+        selected_genes = class_variance[: self.n_features]
+
+        return selected_genes
 
     def mogonet_selection(self):
         """
@@ -100,6 +142,15 @@ def get_thresholded_expressions(expressions, labels):
     ...
 
 
+def ensure_same_ordering():
+    """
+    omic_channels (dict) :
+        given a dict with samples as columns, ensure that all dataframes have the same ordering of columns
+        sorted alphabetically
+    """
+    ...
+
+
 def build_graph(omic_channels, labels):
     """
     build the input graph for the gnn model
@@ -111,7 +162,7 @@ def build_graph(omic_channels, labels):
                 - where each column has gene_names as headers
                 - and the ordering of the samples in each dataframe is the same
             oc = {
-                "mrna" : pl.dataframe,
+                "mrna" : pl.dataframe (n_features, n_samples),
                 "mirna" : pl.dataframe,
                 "cna" : pl.dataframe,
                 "meth" : pl.dataframe,

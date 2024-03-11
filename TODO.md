@@ -16,3 +16,9 @@
     - [ ] KIPAN
     - [ ] LGG
 - handle dependencies with poetry to explore how it works :)
+
+# Todays TODOs
+- [ ] obtain BRCA data
+- [ ] preprocess the data, use simple preprocessing which selects N most variable genes across the different omic layers
+- [ ] work on coding the bipartite gnn model
+

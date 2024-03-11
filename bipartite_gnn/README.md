@@ -12,3 +12,11 @@
 - we also need to make sure that each feature node receives the correct feature vector, i.e. each sample node will contain several channels of information, (mrna expression, mirna expression, dna methylation, cna)
 - question is, should we split the feature vertices for mrna expression and dna methylation / cna if they are for the same gene? answer probably yes, each might have different edges with samples, then we have to make sure that each channel from the sample vertices gets propagated to the correct vertices
 - we will also use attention, it usually has better performance than classical convolution
+- include pooling?
+
+## Initial analysis
+- lets use rna-seq, dna methylation and mirna-seq data
+
+## Alternative model
+- sample vertices start empty (vector of zeros), and input vertices contain info for all inputs
+- this has problems that I am not sure can be overcome

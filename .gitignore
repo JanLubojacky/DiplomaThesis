@@ -12,3 +12,4 @@ BIOGRID-*
 *.tsv
 __pycache__
 .ipynb_checkpoints
+xena_brca_data
