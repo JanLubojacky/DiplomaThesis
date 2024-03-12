@@ -32,7 +32,9 @@ class FeatureSelection:
         """
         filter out low variation and expression features
         """
-        ...
+        # compute variance of each row
+
+        # delete rows with variance below the threshold
 
     def variatonal_selection(self):
         """
@@ -85,13 +87,36 @@ class FeatureSelection:
         ...
 
 
-def gene_names_to_ensembl_ids(gene_names): ...
+def ids_to_gene_names(ids, kind):
+    """
+    Using mygene.info api convert ensgs / ensps to gene names
+    """
+
+    url = "http://mygene.info/v3/query"
+    headers = {"content-type": "application/x-www-form-urlencoded"}
+    params = {}
+
+    # the api takes at most 1000 ids at once, so batch the requests
+    if kind == "protein":
+        ...
+    elif kind == "gene":
+        ...
+    else:
+        print(f"Unknown id kind {kind}")
 
 
 def get_protein_protein_interactions(gene_names):
     """
-    Retrieve interactions between proteins
+    Retrieve interactions between proteins from string db
     """
+
+    # convert ensg to ensp
+
+    # get protein-protein interactions between ensps
+
+    # map back to ensgs and gene names
+
+    #
 
 
 def get_gene_gene_interactions(gene_list):
@@ -172,4 +197,5 @@ def build_graph(omic_channels, labels):
         sample-feature edges in the graph based on
         the expression values accross different tumor types
     """
-    ...
+
+    # get
