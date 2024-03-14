@@ -13,7 +13,7 @@ class FeatureSelection:
 
     def __init__(
         self,
-        data: pl.DataFramea,
+        data: pl.DataFrame,
         feature_names,
         n_features,
         var_threshold,
@@ -92,17 +92,35 @@ def ids_to_gene_names(ids, kind):
     Using mygene.info api convert ensgs / ensps to gene names
     """
 
-    url = "http://mygene.info/v3/query"
-    headers = {"content-type": "application/x-www-form-urlencoded"}
-    params = {}
+    allowed_kinds = ["ensembl.gene", "ensembl.protein", "refseq", "miRBase"]
+    if kind not in allowed_kinds:
+        raise ValueError(f"invalid kind {kind}, please use one of {allowed_kinds}")
 
-    # the api takes at most 1000 ids at once, so batch the requests
-    if kind == "protein":
-        ...
-    elif kind == "gene":
-        ...
+    url = "http://mygene.info/v3/query"
+    headers = {"accept": "*/*", "Content-Type": "application/json"}
+    params = {"species": ["human"], "fields": "symbol, alias", "size": 1000}
+    payload = {"q": ids, "scopes": [kind]}
+
+    # Send POST request
+    response = requests.post(url, headers=headers, params=params, json=payload)
+
+    # Check for successful response
+    if response.status_code == 200:
+        data = response.json()
+        print(data)
+
+        if kind == "miRBase":
+            gene_names = [""] * len(data)
+            for i, item in enumerate(data):
+                for alias in item["alias"]:
+                    if alias[:3] == "hsa":
+                        gene_names[i] = alias
+        else:
+            gene_names = [item["symbol"] for item in data]
+
+        return gene_names
     else:
-        print(f"Unknown id kind {kind}")
+        raise Exception(f"Error fetching gene names: {response.status_code}")
 
 
 def get_protein_protein_interactions(gene_names):
