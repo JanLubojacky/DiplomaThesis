@@ -30,7 +30,11 @@
 - we have 225 mirnas without null values
 - how to split classes? batch balancing?
 - should filter low var mRNAs before selection
-- should apply min/max normalization before selection
+- should apply min/max normalization / standardization after split selection
+- runnning jupyter from docker
+```sh
+jupyter-lab --ip="0.0.0.0" --port=8888 --no-browser --allow-root
+```
 
 # Questions for MBG class
 miRNAs 3p vs 5p
