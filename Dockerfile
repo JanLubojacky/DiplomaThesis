@@ -10,3 +10,11 @@ RUN apt-get update && apt-get install -y \
 # Optionally, set symbolic links for python and pip
 RUN ln -s /usr/bin/python3 /usr/bin/python \
     && ln -s /usr/bin/pip3 /usr/bin/pip
+
+
+# get pytorch geometric for rocm
+# url from here https://github.com/Looong01/pyg-rocm-build/releases/tag/4
+# has to match python version
+RUN curl -LO TODO_URL
+RUN unzip TODO_NAME
+RUN pip install ./TODO_NAME/*
