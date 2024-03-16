@@ -32,9 +32,16 @@
 - should filter low var mRNAs before selection
 - should apply min/max normalization / standardization after split selection
 - runnning jupyter from docker
+
+# On improving mogonet
+- graph construction 
+  - instead of binary A use edge weights
+  - use moglam style learned graph
+- use GAT instead of GCN
 ```sh
 jupyter-lab --ip="0.0.0.0" --port=8888 --no-browser --allow-root
 ```
+- minibatching when using a single large graphs can be done using a neighbour loader
 
 # Questions for MBG class
 miRNAs 3p vs 5p
