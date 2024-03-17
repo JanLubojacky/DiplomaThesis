@@ -16,3 +16,4 @@ xena_brca_data
 string_db
 mirna_db
 data/*
+lightning_logs/
