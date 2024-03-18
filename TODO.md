@@ -15,14 +15,27 @@
     - [ ] ROSMAP
     - [ ] KIPAN
     - [ ] LGG
+- finish Dockerfile for traning with GPU so that it contains
+  - configured rocm
+  - all dependencies
+  - working jupyter-lab
 - handle dependencies with poetry to explore how it works :)
 
 # Local TODOs
 - [x] obtain BRCA data
-- [ ] preprocess the data, use simple preprocessing which selects N most variable genes across the different omic layers
+- [x] preprocess the data, use simple preprocessing which selects N most variable genes across the different omic layers
   - the preprocessing should be run only on the training fold
 - obtain graph data
-- [ ] work on coding the bipartite gnn model
+- [x] finish the bipartite gnn model
+- [ ] extend the bipartite model to multiple omics
+  - [ ] use rGAT
+  - [ ] parameter tuning for the graph
+  - [ ] integrating predictions
+    - [ ] concat and feed into linear layer
+    - [ ] concat and feed into VCDN
+    - [ ] have everything in one graph
+
+- [ ] prepare outline of diploma thesis
 
 # Random notes
 - for now lets only use high scoring protein interactions, > 0.7
@@ -34,7 +47,7 @@
 - runnning jupyter from docker
 
 # On improving mogonet
-- graph construction 
+- graph construction
   - instead of binary A use edge weights
   - use moglam style learned graph
 - use GAT instead of GCN
