@@ -8,6 +8,8 @@ from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.svm import SVC, LinearSVC
 
+from baseline_evals.feature_selection import variational_selection
+
 # Before creating the study:
 # optuna.logging.set_verbosity(optuna.logging.ERROR)
 
@@ -73,6 +75,12 @@ def svm_lin_eval(
             y_train = y[train_index]
             X_test = X[test_index]
             y_test = y[test_index]
+
+            # apply feature selection
+            select_mask, select_idx = variational_selection(X_train, y_train)
+
+            X_train = X_train[:, select_mask]
+            X_test = X_test[:, select_mask]
 
             try:
                 with warnings.catch_warnings():
@@ -189,6 +197,12 @@ def svm_rbf_eval(
             y_train = y[train_index]
             X_test = X[test_index]
             y_test = y[test_index]
+
+            # apply feature selection
+            select_mask, select_idx = variational_selection(X_train, y_train)
+
+            X_train = X_train[:, select_mask]
+            X_test = X_test[:, select_mask]
 
             try:
                 with warnings.catch_warnings():

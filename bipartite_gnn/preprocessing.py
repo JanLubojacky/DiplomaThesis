@@ -166,7 +166,7 @@ def get_gene_gene_interactions(gene_list):
     interactions = r.text
     i_df = pl.read_csv(io.StringIO(interactions), separator="\t")
 
-    if i_df[0] == 10_000:
+    if i_df.shape[0] == 10_000:
         print(
             "10k interactions returned, its possible that the api call didnt return all interactions"
         )

@@ -20,6 +20,7 @@
   - all dependencies
   - working jupyter-lab
 - handle dependencies with poetry to explore how it works :)
+- or pixi https://prefix.dev/
 
 # Local TODOs
 - [x] obtain BRCA data
