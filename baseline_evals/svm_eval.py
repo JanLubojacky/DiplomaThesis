@@ -6,6 +6,7 @@ import optuna.logging
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC, LinearSVC
 
 from baseline_evals.feature_selection import variational_selection
@@ -23,6 +24,7 @@ def svm_lin_eval(
     test_size: float = 0.3,
     random_state: int = 3,
     n_features: int | None = None,
+    norm_features: bool = True,
     verbose: bool = True,
 ) -> dict:
     """
@@ -76,11 +78,18 @@ def svm_lin_eval(
             X_test = X[test_index]
             y_test = y[test_index]
 
-            # apply feature selection
-            select_mask, select_idx = variational_selection(X_train, y_train)
+            if n_features:
+                # apply feature selection
+                select_mask, select_idx = variational_selection(
+                    X_train, y_train, n_features
+                )
+                X_train = X_train[:, select_mask]
+                X_test = X_test[:, select_mask]
 
-            X_train = X_train[:, select_mask]
-            X_test = X_test[:, select_mask]
+            if norm_features:
+                std_scale = StandardScaler().fit(X_train)
+                X_train = std_scale.transform(X_train)
+                X_test = std_scale.transform(X_test)
 
             try:
                 with warnings.catch_warnings():
@@ -124,7 +133,7 @@ def svm_lin_eval(
     if verbose:
         # print the mean f1 score for the best performing parameter
         print(
-            f"| RBF SVM | {best_results['acc']:.4f} +/- {best_results['acc_std']:.4f} | {best_results['f1_macro']:.4f} +/- {best_results['f1_macro_std']:.4f} | {best_results['f1_weighted']:.4f} +/- {best_results['f1_weighted_std']:.4f} |"
+            f"| LIN SVM | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
         )
         print(f"{study.best_value=}, {study.best_params=}")
 
@@ -140,7 +149,8 @@ def svm_rbf_eval(
     gamma_range: tuple = (1e-3, 1e3),
     test_size: float = 0.3,
     random_state: int = 3,
-    n_features: int | None = None,
+    n_features: int | None = 500,
+    norm_features: bool = True,
     verbose: bool = True,
 ) -> dict:
     """
@@ -198,11 +208,18 @@ def svm_rbf_eval(
             X_test = X[test_index]
             y_test = y[test_index]
 
-            # apply feature selection
-            select_mask, select_idx = variational_selection(X_train, y_train)
+            if n_features:
+                # apply feature selection
+                select_mask, select_idx = variational_selection(
+                    X_train, y_train, n_features
+                )
+                X_train = X_train[:, select_mask]
+                X_test = X_test[:, select_mask]
 
-            X_train = X_train[:, select_mask]
-            X_test = X_test[:, select_mask]
+            if norm_features:
+                std_scale = StandardScaler().fit(X_train)
+                X_train = std_scale.transform(X_train)
+                X_test = std_scale.transform(X_test)
 
             try:
                 with warnings.catch_warnings():
@@ -246,7 +263,7 @@ def svm_rbf_eval(
     if verbose:
         # print the mean f1 score for the best performing parameter
         print(
-            f"| RBF SVM | {best_results['acc']:.4f} +/- {best_results['acc_std']:.4f} | {best_results['f1_macro']:.4f} +/- {best_results['f1_macro_std']:.4f} | {best_results['f1_weighted']:.4f} +/- {best_results['f1_weighted_std']:.4f} |"
+            f"| RBF SVM | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
         )
         print(f"{study.best_value=}, {study.best_params=}")
 

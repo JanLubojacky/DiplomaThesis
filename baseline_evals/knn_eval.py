@@ -4,6 +4,7 @@ import optuna.logging
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
 
 from baseline_evals.feature_selection import variational_selection
 
@@ -19,7 +20,8 @@ def knn_eval(
     nn_range: tuple = (1, 30),
     test_size: float = 0.3,
     random_state: int = 3,
-    n_features: int | None = None,
+    n_features: int | None = 500,
+    norm_features: bool = True,
     verbose: bool = True,
 ) -> dict:
     """
@@ -69,11 +71,18 @@ def knn_eval(
             X_test = X[test_index]
             y_test = y[test_index]
 
-            # apply feature selection
-            select_mask, select_idx = variational_selection(X_train, y_train)
+            if n_features:
+                # apply feature selection
+                select_mask, select_idx = variational_selection(
+                    X_train, y_train, n_features
+                )
+                X_train = X_train[:, select_mask]
+                X_test = X_test[:, select_mask]
 
-            X_train = X_train[:, select_mask]
-            X_test = X_test[:, select_mask]
+            if norm_features:
+                std_scale = StandardScaler().fit(X_train)
+                X_train = std_scale.transform(X_train)
+                X_test = std_scale.transform(X_test)
 
             knn.fit(X_train, y_train)
 
@@ -101,6 +110,6 @@ def knn_eval(
     if verbose:
         # print the mean f1 score for the best performing parameter
         print(
-            f"| KNN | {best_results['acc']:.4f} +/- {best_results['acc_std']:.4f} | {best_results['f1_macro']:.4f} +/- {best_results['f1_macro_std']:.4f} | {best_results['f1_weighted']:.4f} +/- {best_results['f1_weighted_std']:.4f} |"
+            f"| KNN | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
         )
         print(f"{study.best_value=}, {study.best_params=}")

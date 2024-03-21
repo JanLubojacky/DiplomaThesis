@@ -138,6 +138,6 @@ def xgboost_eval(
     if verbose:
         # print the mean f1 score for the best performing parameter
         print(
-            f"| XGBoost | {best_results['acc']:.4f} +/- {best_results['acc_std']:.4f} | {best_results['f1_macro']:.4f} +/- {best_results['f1_macro_std']:.4f} | {best_results['f1_weighted']:.4f} +/- {best_results['f1_weighted_std']:.4f} |"
+            f"| XGBoost | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
         )
         print(f"{study.best_value=}, {study.best_params=}")
