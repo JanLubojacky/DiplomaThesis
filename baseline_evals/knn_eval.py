@@ -113,3 +113,59 @@ def knn_eval(
             f"| KNN | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
         )
         print(f"{study.best_value=}, {study.best_params=}")
+
+
+def knn_mo_eval(
+    X: np.ndarray,
+    y: np.ndarray,
+    n_evals: int = 20,
+    n_trials: int = 20,
+    nn_range: tuple = (1, 30),
+    test_size: float = 0.3,
+    random_state: int = 3,
+    n_features: int | None = 500,
+    norm_features: bool = True,
+    verbose: bool = True,
+    integration: str = None,
+):
+    """
+    Evaluates k-Nearest Neighbors (kNN) classification performance on a multi-omic dataset using cross-validation and late integration.
+
+    Args:
+        X (np.ndarray): Input data matrix with shape (n_omics, n_samples, n_features).
+        y (np.ndarray): Target labels with shape (n_samples,).
+        feature_num (int | None, optional): Number of features to keep after dimensionality reduction.
+            If None, no reduction is performed. Defaults to None.
+        verbose (bool, optional): Whether to print evaluation results. Defaults to True.
+        integration (str): how to integrate the multi-omic data, either early or late
+
+    Returns:
+        Dict
+    """
+
+    if integration == "early":
+        # Transpose the matrix to make n_samples the first dimension
+        X_transposed = np.transpose(X, (1, 0, 2))
+
+        # Reshape the matrix to combine n_features and n_omics into a single dimension
+        X_reshaped = X_transposed.reshape(X_transposed.shape[0], -1)
+
+        return knn_eval(
+            X_reshaped,
+            y,
+            n_evals,
+            n_trials,
+            nn_range,
+            test_size,
+            random_state,
+            n_features,
+            norm_features,
+            verbose,
+        )
+    elif integration == "late":
+        # create predictions
+        y_preds = np.zeros((X.shape[0], X.shape[1]))
+
+        for i, omic in enumerate(X):
+            # train a knn model
+            ...
