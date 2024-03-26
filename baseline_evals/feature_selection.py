@@ -4,7 +4,7 @@ import numpy as np
 def variational_selection(X_train, y, n_features=500):
     """
     Given training data X_train (n_samples, n_features) and labels y (n_samples,)
-    filter the features with class based variance
+    filter the features by the variance of the feature mean accross the classes
     """
     # select features based on the training set
     num_labels = len(np.unique(y))
