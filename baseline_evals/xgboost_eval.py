@@ -4,6 +4,9 @@ import optuna.logging
 import xgboost as xgb
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.preprocessing import StandardScaler
+
+from baseline_evals.feature_selection import variational_selection
 
 
 def xgboost_eval(
@@ -13,7 +16,8 @@ def xgboost_eval(
     n_trials: int = 100,
     test_size: float = 0.3,
     random_state: int = 3,
-    n_features: int | None = None,
+    n_features: int | None = 5000,
+    norm_features: bool = True,
     verbose: bool = True,
 ) -> dict:
     """
@@ -89,6 +93,19 @@ def xgboost_eval(
         for i, (train_index, test_index) in enumerate(sss.split(X, y)):
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
+
+            if n_features:
+                # apply feature selection
+                select_mask, select_idx = variational_selection(
+                    X_train, y_train, n_features
+                )
+                X_train = X_train[:, select_mask]
+                X_test = X_test[:, select_mask]
+
+            if norm_features:
+                std_scale = StandardScaler().fit(X_train)
+                X_train = std_scale.transform(X_train)
+                X_test = std_scale.transform(X_test)
 
             xgbst = xgb.train(
                 params,

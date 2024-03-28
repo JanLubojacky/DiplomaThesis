@@ -1,3 +1,17 @@
+# Schuzka 28.3.2024 notes
+- **Building graph based on differential expression**
+  - v bipartitnim grafu jsou uzly pacientu a genu propojeny na zaklade diferencialni exprese genu, posledne jsme diskutovali o tom ze rozhodovat o difirencialni expresi na zaklade odchylky od prumeru neni idealni, jednak exprese pochazi z negativniho binomialniho rozdeleni, druhak dulezita je i zmena ve varianci exprese a ne jen v prumeru
+  - nasel jsem dve metody, ktere umi udelat takove analyzy, plus paper ktery je porovnava `ADD PAPERS`
+
+- **Biomarker discovery progress**
+  - **Learning important features**
+    - jedna z veci ktera je v modelech stejne potreba udelat je projekce ruznych feature vektoru na stejnou dimenzi (typicky miRNA je velmi malo, mRNA naopak hodne), protoze je pak chceme mit v jednom grafu a michat je mezi sebou pres interakcni hrany
+    - toto prida par procent na metrikach, ale hlavne jsou pak vysledky modelu mnohem konzistentnejsi a stabilnejsi
+    - napad je nechat hodne featur ve vstupnim vektrou a pouzit k projekci linearni vrstvu se silnou L1 regularizaci, coz donuti model vytvit nizkodimenzionalni reprezentaci pouze z tech nejdulezitejsich features, vahy v teto projekcni vrstve pak muzeme pouzit k vyjadreni dulezitosti jednotlivych features
+    - tento pristup ma sve opodstatneni v literature `ADD PAPERS`
+
+- **New benchmarks**
+
 # Schuzka 21.3.2024 notes
 - **Architecture notes**
   - bipartite model construction offers a form of additional feature selection, where non-informative nodes will become unconnected
