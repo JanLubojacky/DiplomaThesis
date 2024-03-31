@@ -66,3 +66,39 @@ class GNNTrainer:
                 return loss, acc, f1_macro, f1_weighted
 
             return acc, f1_macro, f1_weighted
+
+    def test_feature_importance(
+        self, data: pyg.data.HeteroData, omic_layers, mode: str = "reset"
+    ):
+        """
+        Compute feature importance
+
+        given the current test split, shuffle / reset feature values for certain features
+        and disconnect the corresponding feature node in the graph, run testing with this
+        degenerated model and compute the difference in performance
+
+        Args:
+            data (pyg.data.HeteroData): HeteroData object
+            omic_layers (list): list of indices for omic nodes
+        Returns:
+            list: list of tensors with feature importances
+        """
+
+        feature_importances = []
+
+        for omic in omic_layers:
+            current_feature_importances = torch.zeros(data[omic].x.shape[1])
+
+            for feature in range(data[omic].x.shape[1]):
+                # save the original feature values
+                original_values = data.x[:, feature].clone()
+
+                # shuffle the feature values
+                data.x[:, feature] = torch.zero_like(original_values)
+
+                metrics = self.test(data, omic_layers, mode="test")
+                current_feature_importances[feature] = metrics.sum()
+
+            feature_importances.append(current_feature_importances)
+
+        return feature_importances

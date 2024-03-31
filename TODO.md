@@ -36,6 +36,9 @@
     - [ ] concat and feed into VCDN
     - [ ] have everything in one graph
 
+- baselines
+  - reimplement SVMs with recursive feature elimination
+
 - [ ] prepare outline of diploma thesis
 
 # Random notes

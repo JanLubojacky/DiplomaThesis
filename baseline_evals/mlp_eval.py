@@ -178,16 +178,16 @@ def mlp_eval(
         )
         num_layers = 1  # trial.suggest_int("num_layers", 1, 3)
         params = {
-            "lr": 1e-3,  # trial.suggest_float("lr", 1e-4, 1e-1, log=True),
-            "l1_lambda": trial.suggest_float("l1_lambda", 1e-4, 10, log=True),
+            "lr": trial.suggest_float("lr", 1e-4, 1e-1, log=True),
+            "l1_lambda": trial.suggest_float("l1_lambda", 1e-4, 1, log=True),
             "l2_lambda": 5e-4,  # trial.suggest_float("l2_lambda", 1e-5, 1e-2, log=True),
             "batch_sz": 64,  # trial.suggest_categorical("batch_sz", [32, 64, 128]),
-            "proj_dim": trial.suggest_int("proj_dim", 32, 128),
-            "dropout": trial.suggest_float("dropout", 0.05, 0.6),
+            "proj_dim": 54,  # trial.suggest_int("proj_dim", 32, 128),
+            "dropout": trial.suggest_float("dropout", 0.05, 0.8),
             "num_layers": num_layers,
             "hidden_channels": [
-                trial.suggest_int("hidden_channels", 32, 128) for _ in range(num_layers)
-            ],
+                46
+            ],  # [trial.suggest_int("hidden_channels", 32, 128) for _ in range(num_layers)],
         }
 
         accs = np.zeros(n_evals)
@@ -272,10 +272,10 @@ def mlp_eval(
                 mlp_lightning_module.metrics["f1_weighted"]
             ).mean()
 
-            # if after half of the evals this doesnt seem promising, break
-            if i > n_evals // 2 and (
+            # if after 2 evals this doesnt seem promising, break
+            if i >= 2 and (
                 f1_weighted[:i].mean()
-                < (best_results["f1_weighted"] - best_results["f1_weighted_std"])
+                < (best_results["f1_weighted"] - 2 * best_results["f1_weighted_std"])
             ):
                 print(
                     f"Pruning trial after {i} evals, cause {f1_weighted[:i].mean()} < {best_results['f1_weighted']}"

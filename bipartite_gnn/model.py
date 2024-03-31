@@ -120,4 +120,4 @@ class BiRGAT(torch.nn.Module):
             x[i] = data_hom.x[data_hom.node_type[layer]]
 
         # integrate the omic views to obtain the final prediction
-        return self.integration_module(x)
+        return self.integration_module(x).argmax(dim=1)
