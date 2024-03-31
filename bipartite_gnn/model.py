@@ -78,6 +78,21 @@ class BiRGAT(torch.nn.Module):
                 "Unknown feature integration mode, please choose one of linear, attention, vcdn"
             )
 
+    def feature_importance_projection(self, feature_names):
+        """
+        Given feature names, compute the importance of each feature based on the projection layer
+        """
+
+        feature_importances = []
+
+        with torch.no_grad():
+            for projection_layer, features in zip(self.projections, feature_names):
+                feature_importances.append(
+                    torch.abs(projection_layer.weight).sum(dim=1)
+                )
+
+        return feature_importances
+
     def forward(self, data: pyg.data.HeteroData, omic_layers):
         """
         Accepts a HeteroData object

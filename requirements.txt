@@ -5,3 +5,9 @@ seaborn
 matplotlib
 jupyterlab
 xgboost
+torch
+torchvision
+torchaudio
+lightning
+requests
+ipywidgets

@@ -1,3 +1,6 @@
+# Schuzka 4.4.2024 notes
+
+
 # Schuzka 28.3.2024 notes
 - **Building graph based on differential expression**
   - v bipartitnim grafu jsou uzly pacientu a genu propojeny na zaklade diferencialni exprese genu, posledne jsme diskutovali o tom ze rozhodovat o difirencialni expresi na zaklade odchylky od prumeru neni idealni, jednak exprese pochazi z negativniho binomialniho rozdeleni, druhak dulezita je i zmena ve varianci exprese a ne jen v prumeru
@@ -11,6 +14,21 @@
     - tento pristup ma sve opodstatneni v literature `ADD PAPERS`
 
 - **New benchmarks**
+**BRCA**
+| Method | Accuracy | F1 macro | F1 weighted |
+| --- | --- | --- | --- |
+| KNN | 0.66 +/- 0.02 | 0.56 +/- 0.04 | 0.62 +/- 0.03 |
+| LIN SVM | 0.82 +/- 0.02 | 0.81 +/- 0.02 | 0.82 +/- 0.02 |
+| RBF SVM | 0.81 +/- 0.02 | 0.79 +/- 0.02 | 0.80 +/- 0.02 |
+| XGBoost | 0.84 +/- 0.02 | 0.83 +/- 0.03 | 0.84 +/- 0.02 |
+| MLP | 0.83 +/- 0.01 | 0.81 +/- 0.02 | 0.83 +/- 0.00 |
+
+params:
+- KNN : 'n_neighbors': 1
+- LIN SVM : 'C': 0.0012
+- RBF SVM : 'C': 8.681172078950329, 'gamma': 0.001006552771
+- XGBoost : study.best_params={'booster': 'gblinear', 'lambda': 1.9331534835190518e-07, 'alpha': 0.024155675124393854}
+- MLP : study.best_params={'l1_lambda': 0.0006192264511539954, 'proj_dim': 112, 'dropout': 0.15755615666066203, 'hidden_channels': 54}
 
 # Schuzka 21.3.2024 notes
 - **Architecture notes**

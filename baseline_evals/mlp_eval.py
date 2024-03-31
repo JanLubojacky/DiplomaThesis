@@ -1,3 +1,6 @@
+import logging
+import os
+
 import numpy as np
 import optuna
 import pytorch_lightning as L
@@ -5,7 +8,14 @@ import torch
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.preprocessing import StandardScaler
 from torch.nn import Linear
+
+from baseline_evals.feature_selection import variational_selection
+
+log = logging.getLogger("pytorch_lightning")
+log.propagate = False
+log.setLevel(logging.ERROR)
 
 
 class MLPDataset(torch.utils.data.Dataset):
@@ -77,6 +87,11 @@ class MLPTrainer(L.LightningModule):  # Fixed the import of LightningModule
         self.lr = lr
         self.l1_lambda = l1_lambda
         self.l2_lambda = l2_lambda
+        self.metrics = {
+            "acc": [],
+            "f1_macro": [],
+            "f1_weighted": [],
+        }
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -84,10 +99,11 @@ class MLPTrainer(L.LightningModule):  # Fixed the import of LightningModule
         y_pred = self.net(x)
         loss = F.cross_entropy(y_pred, y)  # Changed 'torch.nn.functional' to 'F'
         # L1 regularization for self.net.proj layer
-        l1_reg = torch.tensor(0.0)
+        l1_reg = torch.tensor(0.0).to(self.device)
         for param in self.net.proj.parameters():
             l1_reg += torch.norm(param, 1)
-            loss += self.l1_lambda * l1_reg
+
+        loss += self.l1_lambda * l1_reg
 
         return loss
 
@@ -96,8 +112,10 @@ class MLPTrainer(L.LightningModule):  # Fixed the import of LightningModule
         x = x.view(x.size(0), -1)
         y_pred = self.net(x)
         val_loss = F.cross_entropy(y_pred, y)  # Changed 'torch.nn.functional' to 'F'
+        # move to cpu and calculate metrics
+        y_pred = y_pred.to(torch.device("cpu"))
         val_f1 = f1_score(
-            y, y_pred.argmax(dim=1), average="weighted"
+            y.to(torch.device("cpu")), y_pred.argmax(dim=1), average="weighted"
         )  # Fixed the calculation of f1_score
         self.log("val_loss", val_loss)
         self.log("val_f1", val_f1)
@@ -106,11 +124,16 @@ class MLPTrainer(L.LightningModule):  # Fixed the import of LightningModule
         x, y = batch
         x = x.view(x.size(0), -1)
         y_pred = self.net(x)
+        # move to cpu and calculate metrics
+        y = y.to(torch.device("cpu"))
+        y_pred = y_pred.to(torch.device("cpu"))
         test_acc = accuracy_score(y, y_pred.argmax(dim=1))
         test_f1_macro = f1_score(y, y_pred.argmax(dim=1), average="macro")
         test_f1_weighted = f1_score(y, y_pred.argmax(dim=1), average="weighted")
-        return test_acc, test_f1_macro, test_f1_weighted
-        self.log("test_f1", test_f1_weighted)
+
+        self.metrics["acc"].append(test_acc)
+        self.metrics["f1_macro"].append(test_f1_macro)
+        self.metrics["f1_weighted"].append(test_f1_weighted)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
@@ -119,7 +142,7 @@ class MLPTrainer(L.LightningModule):  # Fixed the import of LightningModule
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min")
         return {
             "optimizer": optimizer,
-            "lr_scheduler_config": {
+            "lr_scheduler": {
                 "scheduler": scheduler,
                 "monitor": "val_loss",
             },
@@ -127,7 +150,14 @@ class MLPTrainer(L.LightningModule):  # Fixed the import of LightningModule
 
 
 def mlp_eval(
-    X, y, random_state=3, n_evals=5, n_trials=100, test_size=0.2, verbose=True
+    X,
+    y,
+    random_state=3,
+    n_evals=5,
+    n_trials=100,
+    val_test_size=0.4,
+    n_features=5000,
+    verbose=True,
 ):
     best_results = {
         "acc": 0.0,
@@ -141,48 +171,116 @@ def mlp_eval(
     def objective(trial):
         nonlocal best_results
 
-        print(f"{trial.number} / {n_trials}")
+        print(f"Trial {trial.number} / {n_trials}")
 
         sss = StratifiedShuffleSplit(
-            n_splits=n_evals, test_size=test_size, random_state=random_state
+            n_splits=n_evals, test_size=val_test_size, random_state=random_state
         )
-        proj_dim = trial.suggest_int("proj_dim", 32, 256)
-        hidden_channels = [
-            trial.suggest_int("hidden_channels", 32, 256)
-            for _ in range(trial.suggest_int("num_layers", 1, 3))
-        ]
-        # define model
-        net = MLP(
-            input_sz=X.shape[1],
-            num_classes=len(np.unique(y)),
-            proj_dim=proj_dim,
-            hidden_channels=[proj_dim] + hidden_channels,
-            dropout=trial.suggest_float("dropout", 0.1, 0.5),
-        )
-        trainer = MLPTrainer(
-            net,
-            lr=trial.suggest_float("lr", 1e-4, 1e-1, log=True),
-            l1_lambda=trial.suggest_float("l1_lambda", 1e-2, 10, log=True),
-            l2_lambda=trial.suggest_float("l2_lambda", 1e-5, 1e-2, log=True),
-        )
+        num_layers = 1  # trial.suggest_int("num_layers", 1, 3)
+        params = {
+            "lr": 1e-3,  # trial.suggest_float("lr", 1e-4, 1e-1, log=True),
+            "l1_lambda": trial.suggest_float("l1_lambda", 1e-4, 10, log=True),
+            "l2_lambda": 5e-4,  # trial.suggest_float("l2_lambda", 1e-5, 1e-2, log=True),
+            "batch_sz": 64,  # trial.suggest_categorical("batch_sz", [32, 64, 128]),
+            "proj_dim": trial.suggest_int("proj_dim", 32, 128),
+            "dropout": trial.suggest_float("dropout", 0.05, 0.6),
+            "num_layers": num_layers,
+            "hidden_channels": [
+                trial.suggest_int("hidden_channels", 32, 128) for _ in range(num_layers)
+            ],
+        }
 
         accs = np.zeros(n_evals)
         f1_macros = np.zeros(n_evals)
         f1_weighted = np.zeros(n_evals)
 
         for i, (train_index, test_index) in enumerate(sss.split(X, y)):
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
-            dataset_train = MLPDataset(torch.tensor(X_train), torch.tensor(y_train))
-            dataset_test = MLPDataset(torch.tensor(X_test), torch.tensor(y_test))
-            train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=32)
-            test_loader = torch.utils.data.DataLoader(dataset_test, batch_size=32)
-            trainer.fit(train_loader, test_loader)
+            print(f"Eval {i+1} / {n_evals}")
+            # split test_idx into val_idx and test_idx
+            val_idx = test_index[: len(test_index) // 2]
+            test_idx = test_index[len(test_index) // 2 :]
 
-            acc, f1_m, f1_w = trainer.test(test_loader)
-            accs[i] = acc
-            f1_macros[i] = f1_m
-            f1_weighted[i] = f1_w
+            X_train = X[train_index]
+            X_val = X[val_idx]
+            X_test = X[test_idx]
+
+            # feature pre-selection
+            if n_features:
+                select_mask, select_idx = variational_selection(
+                    X_train, y[train_index], n_features
+                )
+                X_train = X_train[:, select_mask]
+                X_val = X_val[:, select_mask]
+                X_test = X_test[:, select_mask]
+
+            # scale features
+            std_scale = StandardScaler()
+            X_train = std_scale.fit_transform(X_train)
+            X_val = std_scale.transform(X_val)
+            X_test = std_scale.transform(X_test)
+
+            train_loader = torch.utils.data.DataLoader(
+                MLPDataset(torch.Tensor(X_train), torch.tensor(y[train_index])),
+                batch_size=params["batch_sz"],
+                num_workers=os.cpu_count() - 1,
+            )
+            val_loader = torch.utils.data.DataLoader(
+                MLPDataset(torch.Tensor(X_val), torch.tensor(y[val_idx])),
+                batch_size=params["batch_sz"],
+                num_workers=os.cpu_count() - 1,
+            )
+            test_loader = torch.utils.data.DataLoader(
+                MLPDataset(torch.Tensor(X_test), torch.tensor(y[test_idx])),
+                batch_size=params["batch_sz"],
+                num_workers=os.cpu_count() - 1,
+            )
+
+            # define model
+            mlp = MLP(
+                input_sz=X_train.shape[1],
+                num_classes=len(np.unique(y)),
+                proj_dim=params["proj_dim"],
+                hidden_channels=[params["proj_dim"]] + params["hidden_channels"],
+                dropout=params["dropout"],
+            )
+            mlp_lightning_module = MLPTrainer(
+                net=mlp,
+                lr=params["lr"],
+                l1_lambda=params["l1_lambda"],
+                l2_lambda=params["l2_lambda"],
+            )
+
+            trainer = L.Trainer(
+                max_epochs=50,
+                callbacks=[L.callbacks.EarlyStopping(monitor="val_loss", mode="min")],
+                log_every_n_steps=-1,
+                enable_progress_bar=False,
+            )
+
+            # train and test the model
+            trainer.fit(
+                model=mlp_lightning_module,
+                train_dataloaders=train_loader,
+                val_dataloaders=val_loader,
+            )
+
+            trainer.test(model=mlp_lightning_module, dataloaders=test_loader)
+
+            accs[i] = torch.tensor(mlp_lightning_module.metrics["acc"]).mean()
+            f1_macros[i] = torch.tensor(mlp_lightning_module.metrics["f1_macro"]).mean()
+            f1_weighted[i] = torch.tensor(
+                mlp_lightning_module.metrics["f1_weighted"]
+            ).mean()
+
+            # if after half of the evals this doesnt seem promising, break
+            if i > n_evals // 2 and (
+                f1_weighted[:i].mean()
+                < (best_results["f1_weighted"] - best_results["f1_weighted_std"])
+            ):
+                print(
+                    f"Pruning trial after {i} evals, cause {f1_weighted[:i].mean()} < {best_results['f1_weighted']}"
+                )
+                break
 
         acc = np.mean(accs)
         f1_macro = np.mean(f1_macros)
@@ -208,12 +306,12 @@ def mlp_eval(
 
         return current_result
 
-    study = optuna.create_study(
-        pruner=optuna.pruners.MedianPruner(n_warmup_steps=5), direction="maximize"
-    )
+    study = optuna.create_study(direction="maximize")
     study.optimize(objective, n_trials=n_trials)
 
     if verbose:
+        # print best parameters and results
+        print(f"{study.best_value=}, {study.best_params=}")
         print(
             f"| MLP | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
         )
