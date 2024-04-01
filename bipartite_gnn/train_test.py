@@ -68,7 +68,7 @@ class GNNTrainer:
             return acc, f1_macro, f1_weighted
 
     def test_feature_importance(
-        self, data: pyg.data.HeteroData, omic_layers, mode: str = "reset"
+        self, data: pyg.data.HeteroData, omic_layers, mode: str = "zero"
     ):
         """
         Compute feature importance
@@ -98,6 +98,9 @@ class GNNTrainer:
 
                 metrics = self.test(data, omic_layers, mode="test")
                 current_feature_importances[feature] = metrics.sum()
+
+                # return the original values
+                data.x[:, feature] = original_values
 
             feature_importances.append(current_feature_importances)
 

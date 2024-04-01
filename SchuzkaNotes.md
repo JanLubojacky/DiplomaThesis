@@ -1,5 +1,10 @@
 # Schuzka 4.4.2024 notes
 
+TODO:
+- improve feature pre-selection
+  - with ANOVA+PCA ?
+  - maybe or mayber the MLP model could be better at this
+
 
 # Schuzka 28.3.2024 notes
 - **Building graph based on differential expression**
@@ -11,11 +16,11 @@
 - **Biomarker discovery progress**
   - **Learning important features**
     - jedna z veci ktera je v modelech stejne potreba udelat je projekce ruznych feature vektoru na stejnou dimenzi (typicky miRNA je pomerne malo, mRNA naopak velmi hodne), protoze je pak chceme mit v jednom grafu a michat je mezi sebou pres interakcni hrany
-    - toto prida par procent na metrikach, ale hlavne jsou pak vysledky modelu mnohem konzistentnejsi a stabilnejsi
     - napad je nechat hodne featur ve vstupnim vektrou a pouzit k projekci linearni vrstvu se silnou L1 regularizaci, coz donuti model vytvit nizkodimenzionalni reprezentaci pouze z tech nejdulezitejsich features, vahy v teto projekcni vrstve pak muzeme pouzit k vyjadreni dulezitosti jednotlivych features
-    - tento pristup ma sve opodstatneni v literature `ADD PAPERS`
+    - tento pristup ma sve opodstatneni v [literature](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3224215/)
+    - podstatne to zlepsi vysledky MLP modelu
 
-- **New benchmarks**
+- performance on the BRCA dataset with increasing number of features
 
 **BRCA_1000**
 | Method | Accuracy | F1 macro | F1 weighted |
@@ -24,21 +29,40 @@
 | LIN SVM | 0.82 +/- 0.02 | 0.81 +/- 0.02 | 0.82 +/- 0.02 |
 | RBF SVM | 0.81 +/- 0.02 | 0.79 +/- 0.02 | 0.80 +/- 0.02 |
 | XGBoost | 0.84 +/- 0.02 | 0.83 +/- 0.03 | 0.84 +/- 0.02 |
-| Projection + MLP | 0.83 +/- 0.01 | 0.81 +/- 0.02 | 0.83 +/- 0.00 |
+| Projection + MLP | 0.83 +/- 0.01 | 0.81 +/- 0.02 | 0.83 +/- 0.02 |
+mogonet
+moglam
+BiGNN
 
-**BRCA_5000**
+**BRCA_5k** - note the influence of regularization on projection layer
+| Method | Accuracy | F1 macro | F1 weighted |
+| --- | --- | --- | --- |
 | KNN | 0.64 +/- 0.03 | 0.53 +/- 0.04 | 0.60 +/- 0.04 |
-| LIN SVM | 0.81 +/- 0.03 | 0.81 +/- 0.03 | 0.81 +/- 0.03 |
+| LIN SVM w RFE | 0.81 +/- 0.03 | 0.81 +/- 0.03 | 0.81 +/- 0.03 |
 | XGBoost | 0.86 +/- 0.01 | 0.84 +/- 0.01 | 0.86 +/- 0.01 |
-| MLP | 0.83 +/- 0.03 | 0.81 +/- 0.04 | 0.83 +/- 0.00 |
+| L1 reg. MLP | 0.84 +/- 0.03 | 0.82 +/- 0.05 | 0.84 +/- 0.03 |
+| No reg. proj. MLP | 0.78 +/- 0.03 | 0.75 +/- 0.05 | 0.78 +/- 0.03 |
 
+**BRCA_20k** - L1 regularization falls off a little
+| Method | Accuracy | F1 macro | F1 weighted |
+| --- | --- | --- | --- |
+| LIN SVM w RFE | 0.79 +/- 0.03 | 0.79 +/- 0.02 | 0.79 +/- 0.03 |
+| XGBoost | 0.87 +/- 0.02 | 0.86 +/- 0.02 | 0.87 +/- 0.02 |
+| L1 reg. MLP | 0.81 +/- 0.04 | 0.79 +/- 0.05 | 0.81 +/- 0.03 |
+
+**BRCA_ALL**
+| Method | Accuracy | F1 macro | F1 weighted |
+| --- | --- | --- | --- |
+| XGBoost | 0.87 +/- 0.02 | 0.86 +/- 0.01 | 0.87 +/- 0.02 |
+
+study.best_value=0.8667453943161659, study.best_params={'booster': 'gblinear', 'lambda': 0.06052579605146727, 'alpha': 0.029610316106162753}
 
 params:
 - KNN : 'n_neighbors': 1
 - LIN SVM : 'C': 0.0012
 - RBF SVM : 'C': 8.681172078950329, 'gamma': 0.001006552771
 - XGBoost : study.best_params={'booster': 'gblinear', 'lambda': 1.9331534835190518e-07, 'alpha': 0.024155675124393854}
-- MLP : study.best_params={'l1_lambda': 0.0006192264511539954, 'proj_dim': 112, 'dropout': 0.15755615666066203, 'hidden_channels': 54}
+- MLP : {'lr': 0.001, 'l1_lambda': 0.001, 'l2_lambda': 0.0005, 'batch_sz': 64, 'proj_dim': 54, 'dropout': 0.5, 'num_layers': 1, 'hidden_channels': [46]}
 
 # Schuzka 21.3.2024 notes
 - **Architecture notes**

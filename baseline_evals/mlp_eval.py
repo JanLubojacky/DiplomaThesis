@@ -50,13 +50,10 @@ class MLP(torch.nn.Module):
     def __init__(self, input_sz, num_classes, proj_dim, hidden_channels, dropout):
         super().__init__()
         torch.manual_seed(12345)
-        self.proj = Linear(input_sz, proj_dim)
+        if proj_dim is not None:
+            self.proj = Linear(input_sz, proj_dim)
+
         self.dropout = dropout
-
-        assert (
-            proj_dim == hidden_channels[0]
-        ), "Projection dim must match first hidden layer dim"
-
         self.hidden_layers = torch.nn.ModuleList(
             [
                 Linear(hidden_channels[i], hidden_channels[i + 1])
@@ -71,6 +68,7 @@ class MLP(torch.nn.Module):
         x = self.proj(x)
         x = F.relu(x)
         # x = F.dropout(x, p=self.dropout, training=self.training)
+
         # apply all hidden layers
         for layer in self.hidden_layers:
             x = layer(x)
@@ -98,12 +96,14 @@ class MLPTrainer(L.LightningModule):  # Fixed the import of LightningModule
         x = x.view(x.size(0), -1)
         y_pred = self.net(x)
         loss = F.cross_entropy(y_pred, y)  # Changed 'torch.nn.functional' to 'F'
-        # L1 regularization for self.net.proj layer
-        l1_reg = torch.tensor(0.0).to(self.device)
-        for param in self.net.proj.parameters():
-            l1_reg += torch.norm(param, 1)
 
-        loss += self.l1_lambda * l1_reg
+        if self.l1_lambda is not None:
+            # L1 regularization for self.net.proj layer
+            l1_reg = torch.tensor(0.0).to(self.device)
+            for param in self.net.proj.parameters():
+                l1_reg += torch.norm(param, 1)
+
+            loss += self.l1_lambda * l1_reg
 
         return loss
 
@@ -178,21 +178,21 @@ def mlp_eval(
         )
         num_layers = 1  # trial.suggest_int("num_layers", 1, 3)
         params = {
-            "lr": trial.suggest_float("lr", 1e-4, 1e-1, log=True),
-            "l1_lambda": trial.suggest_float("l1_lambda", 1e-4, 1, log=True),
+            "lr": 1e-3,  # trial.suggest_float("lr", 1e-4, 1e-1, log=True),
+            "l1_lambda": 8e-4,  # trial.suggest_float("l1_lambda", 1e-4, 1, log=True),
             "l2_lambda": 5e-4,  # trial.suggest_float("l2_lambda", 1e-5, 1e-2, log=True),
             "batch_sz": 64,  # trial.suggest_categorical("batch_sz", [32, 64, 128]),
-            "proj_dim": 54,  # trial.suggest_int("proj_dim", 32, 128),
-            "dropout": trial.suggest_float("dropout", 0.05, 0.8),
+            "proj_dim": 100,  # trial.suggest_int("proj_dim", 32, 256),
+            "dropout": 0.67,  # trial.suggest_float("dropout", 0.05, 0.8),
             "num_layers": num_layers,
-            "hidden_channels": [
-                46
-            ],  # [trial.suggest_int("hidden_channels", 32, 128) for _ in range(num_layers)],
+            "hidden_channels": [100],  #  [
+            # trial.suggest_int("hidden_channels", 32, 256) for _ in range(num_layers)
+            # ],
         }
 
         accs = np.zeros(n_evals)
         f1_macros = np.zeros(n_evals)
-        f1_weighted = np.zeros(n_evals)
+        f1_weighteds = np.zeros(n_evals)
 
         for i, (train_index, test_index) in enumerate(sss.split(X, y)):
             print(f"Eval {i+1} / {n_evals}")
@@ -268,26 +268,26 @@ def mlp_eval(
 
             accs[i] = torch.tensor(mlp_lightning_module.metrics["acc"]).mean()
             f1_macros[i] = torch.tensor(mlp_lightning_module.metrics["f1_macro"]).mean()
-            f1_weighted[i] = torch.tensor(
+            f1_weighteds[i] = torch.tensor(
                 mlp_lightning_module.metrics["f1_weighted"]
             ).mean()
 
             # if after 2 evals this doesnt seem promising, break
             if i >= 2 and (
-                f1_weighted[:i].mean()
+                f1_weighteds[:i].mean()
                 < (best_results["f1_weighted"] - 2 * best_results["f1_weighted_std"])
             ):
                 print(
-                    f"Pruning trial after {i} evals, cause {f1_weighted[:i].mean()} < {best_results['f1_weighted']}"
+                    f"Pruning trial after {i} evals, cause {f1_weighteds[:i].mean()} < {best_results['f1_weighted']}"
                 )
                 break
 
         acc = np.mean(accs)
         f1_macro = np.mean(f1_macros)
-        f1_weighted = np.mean(f1_weighted)
+        f1_weighted = np.mean(f1_weighteds)
         acc_std = np.std(accs)
         f1_macro_std = np.std(f1_macros)
-        f1_weighted_std = np.std(f1_weighted)
+        f1_weighted_std = np.std(f1_weighteds)
 
         current_result = acc + f1_macro + f1_weighted
 

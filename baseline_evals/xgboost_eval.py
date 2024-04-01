@@ -145,6 +145,10 @@ def xgboost_eval(
             best_results["f1_weighted"] = f1_scores.mean()
             best_results["f1_weighted_std"] = f1_scores.std()
 
+            print(
+                f"| XGBoost | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
+            )
+
         return mean_f1
 
     study = optuna.create_study(
