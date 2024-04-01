@@ -1,7 +1,27 @@
 import numpy as np
 
 
-def variational_selection(X_train, y, n_features=500):
+def variance_filtering(X_train, n_features=500):
+    """
+    Order features by variance and select the ones with the biggest variance
+
+    Args:
+        X_train: np.array of shape (n_samples, n_features)
+        n_features: int, number of features to select
+    Returns:
+        best_mask: np.array of shape (n_features,) with True for selected features
+    """
+
+    # ascending order of variance
+    var_order = np.argsort(X_train.var(axis=0))
+
+    # select the features with the largest variance
+    best_mask = var_order >= (X_train.shape[1] - n_features)
+
+    return best_mask
+
+
+def class_variational_selection(X_train, y, n_features=500):
     """
     Given training data X_train (n_samples, n_features) and labels y (n_samples,)
     filter the features by the variance of the feature mean accross the classes

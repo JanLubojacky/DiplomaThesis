@@ -6,7 +6,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 
-from baseline_evals.feature_selection import variational_selection
+from baseline_evals.feature_selection import variance_filtering
 
 # Before creating the study:
 optuna.logging.set_verbosity(optuna.logging.ERROR)
@@ -73,9 +73,10 @@ def knn_eval(
 
             if n_features:
                 # apply feature selection
-                select_mask, select_idx = variational_selection(
-                    X_train, y_train, n_features
-                )
+                # select_mask, select_idx = class_variational_selection(
+                #     X_train, y_train, n_features
+                # )
+                select_mask = variance_filtering(X_train, n_features)
                 X_train = X_train[:, select_mask]
                 X_test = X_test[:, select_mask]
 

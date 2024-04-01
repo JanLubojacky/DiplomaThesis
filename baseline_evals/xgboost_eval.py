@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import StandardScaler
 
-from baseline_evals.feature_selection import variational_selection
+from baseline_evals.feature_selection import variance_filtering
 
 
 def xgboost_eval(
@@ -61,7 +61,7 @@ def xgboost_eval(
             ),
             "lambda": trial.suggest_float("lambda", 1e-8, 1.0, log=True),
             "alpha": trial.suggest_float("alpha", 1e-8, 1.0, log=True),
-            "num_class": 5,
+            "num_class": len(np.unique(y)),
         }
 
         if params["booster"] == "gbtree" or params["booster"] == "dart":
@@ -96,9 +96,10 @@ def xgboost_eval(
 
             if n_features:
                 # apply feature selection
-                select_mask, select_idx = variational_selection(
-                    X_train, y_train, n_features
-                )
+                # select_mask, select_idx = class_variational_selection(
+                #     X_train, y_train, n_features
+                # )
+                select_mask = variance_filtering(X_train, n_features)
                 X_train = X_train[:, select_mask]
                 X_test = X_test[:, select_mask]
 
@@ -152,7 +153,8 @@ def xgboost_eval(
         return mean_f1
 
     study = optuna.create_study(
-        pruner=optuna.pruners.MedianPruner(n_warmup_steps=5), direction="maximize"
+        direction="maximize"
+        # pruner=optuna.pruners.MedianPruner(n_warmup_steps=5), direction="maximize"
     )
     study.optimize(objective, n_trials=n_trials)
 

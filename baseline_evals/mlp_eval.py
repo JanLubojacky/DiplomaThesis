@@ -11,7 +11,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import StandardScaler
 from torch.nn import Linear
 
-from baseline_evals.feature_selection import variational_selection
+from baseline_evals.feature_selection import class_variational_selection
 
 log = logging.getLogger("pytorch_lightning")
 log.propagate = False
@@ -67,7 +67,6 @@ class MLP(torch.nn.Module):
         # apply projection layer
         x = self.proj(x)
         x = F.relu(x)
-        # x = F.dropout(x, p=self.dropout, training=self.training)
 
         # apply all hidden layers
         for layer in self.hidden_layers:
@@ -179,15 +178,15 @@ def mlp_eval(
         num_layers = 1  # trial.suggest_int("num_layers", 1, 3)
         params = {
             "lr": 1e-3,  # trial.suggest_float("lr", 1e-4, 1e-1, log=True),
-            "l1_lambda": 8e-4,  # trial.suggest_float("l1_lambda", 1e-4, 1, log=True),
+            "l1_lambda": trial.suggest_float("l1_lambda", 1e-4, 5e-2, log=True),
             "l2_lambda": 5e-4,  # trial.suggest_float("l2_lambda", 1e-5, 1e-2, log=True),
-            "batch_sz": 64,  # trial.suggest_categorical("batch_sz", [32, 64, 128]),
-            "proj_dim": 100,  # trial.suggest_int("proj_dim", 32, 256),
-            "dropout": 0.67,  # trial.suggest_float("dropout", 0.05, 0.8),
+            "batch_sz": trial.suggest_categorical("batch_sz", [32, 64, 128]),
+            "proj_dim": trial.suggest_int("proj_dim", 32, 128),
+            "dropout": trial.suggest_float("dropout", 0.05, 0.8),
             "num_layers": num_layers,
-            "hidden_channels": [100],  #  [
-            # trial.suggest_int("hidden_channels", 32, 256) for _ in range(num_layers)
-            # ],
+            "hidden_channels": [
+                trial.suggest_int("hidden_channels", 32, 256) for _ in range(num_layers)
+            ],
         }
 
         accs = np.zeros(n_evals)
@@ -206,9 +205,10 @@ def mlp_eval(
 
             # feature pre-selection
             if n_features:
-                select_mask, select_idx = variational_selection(
+                select_mask, select_idx = class_variational_selection(
                     X_train, y[train_index], n_features
                 )
+                # select_mask = variance_filtering(X_train, n_features)
                 X_train = X_train[:, select_mask]
                 X_val = X_val[:, select_mask]
                 X_test = X_test[:, select_mask]
@@ -303,6 +303,8 @@ def mlp_eval(
             best_results["acc_std"] = acc_std
             best_results["f1_macro_std"] = f1_macro_std
             best_results["f1_weighted_std"] = f1_weighted_std
+
+            print(best_results)
 
         return current_result
 

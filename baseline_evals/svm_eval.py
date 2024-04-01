@@ -10,7 +10,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC, LinearSVC
 
-from baseline_evals.feature_selection import variational_selection
+from baseline_evals.feature_selection import class_variational_selection
 
 # Before creating the study:
 # optuna.logging.set_verbosity(optuna.logging.ERROR)
@@ -100,7 +100,7 @@ def svm_eval(
 
             if n_features_preselect:
                 # apply feature pre-selection
-                select_mask, select_idx = variational_selection(
+                select_mask, select_idx = class_variational_selection(
                     X_train, y_train, n_features_preselect
                 )
                 X_train = X_train[:, select_mask]

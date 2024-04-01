@@ -1,14 +1,23 @@
 # Schuzka 4.4.2024 notes
 
-TODO:
+- [ Link na vznikajici diplomku ]( https://www.overleaf.com/read/fnnypstdxstx#276c8f )
+
+TODOs for future:
+- create plots with feature scores
 - improve feature pre-selection
-  - with ANOVA+PCA ?
-  - maybe or mayber the MLP model could be better at this
+  - what we currently have
+    - select genes by their mean class variance across the test set
+  - what we could do
+    - ranking genes by their variance across the training set (same approach as in https://arxiv.org/pdf/2302.12838.pdf)
+    - use GAMLSS to model expression data and select genes based on the model parameters
+      - same idea as when selecting differentially expressed genes
+    - with ANOVA+PCA as in mogonet
+    - maybe or mayber the MLP model could be better at this
 
 
 # Schuzka 28.3.2024 notes
 - **Building graph based on differential expression**
-  - v bipartitnim grafu jsou uzly pacientu a genu propojeny na zaklade diferencialni exprese genu, posledne jsme diskutovali o tom ze rozhodovat o difirencialni expresi na zaklade odchylky od prumeru neni idealni, jednak exprese pochazi z negativniho binomialniho rozdeleni, druhak dulezita je i zmena ve varianci exprese a ne jen v prumeru
+  - v bipartitnim grafu jsou uzly pacientu a genu propojeny na zaklade diferencialni exprese genu, posledne jsme diskutovali o tom ze rozhodovat o difirencialni expresi na zaklade odchylky od prumeru neni idealni, jednak exprese pochazi z negativniho binomialniho rozdeleni, druha dulezita je i zmena ve varianci exprese a ne jen v prumeru
   - nasel jsem dve metody, ktere umi udelat takove analyzy
     - https://www.gamlss.com/
     - [paper ktery je porovnava](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1010342)
@@ -18,7 +27,7 @@ TODO:
     - jedna z veci ktera je v modelech stejne potreba udelat je projekce ruznych feature vektoru na stejnou dimenzi (typicky miRNA je pomerne malo, mRNA naopak velmi hodne), protoze je pak chceme mit v jednom grafu a michat je mezi sebou pres interakcni hrany
     - napad je nechat hodne featur ve vstupnim vektrou a pouzit k projekci linearni vrstvu se silnou L1 regularizaci, coz donuti model vytvit nizkodimenzionalni reprezentaci pouze z tech nejdulezitejsich features, vahy v teto projekcni vrstve pak muzeme pouzit k vyjadreni dulezitosti jednotlivych features
     - tento pristup ma sve opodstatneni v [literature](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3224215/)
-    - podstatne to zlepsi vysledky MLP modelu
+    - podstatne to zlepsi vysledky uz i u MLP modelu
 
 - performance on the BRCA dataset with increasing number of features
 
