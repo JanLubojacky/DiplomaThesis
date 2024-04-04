@@ -12,6 +12,7 @@ class LinearIntegration(torch.nn.Module):
     """
 
     def __init__(self, n_views, view_dim, n_classes):
+        super().__init__()
         self.classifier = pyg.nn.Linear(
             -1, n_classes, weight_initializer="kaiming_uniform"
         )
@@ -26,7 +27,8 @@ class LinearIntegration(torch.nn.Module):
         # (n_samples, n_omics, n_features) -> (n_samples, n_features*n_omics)
         x = xt.reshape(xt.shape[0], -1)
 
-        return F.relu(self.classifier(x))
+        return self.classifier(x)
+        # return F.relu(self.classifier(x))
 
 
 class AttentionIntegration(torch.nn.Module):
@@ -129,6 +131,7 @@ class VCDN(torch.nn.Module):
     """
 
     def __init__(self, n_views, view_dim, n_classes, convolutional=False):
+        super(VCDN, self).__init__()
         self.convolutional = convolutional
 
         if convolutional:

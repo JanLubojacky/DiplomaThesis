@@ -1,3 +1,7 @@
+import warnings
+
+import numpy as np
+import statsmodels.api as sm
 import torch
 
 
@@ -35,6 +39,10 @@ def dense_to_coo(adj_mat):
     """
     Convert an adjacency matrix in a dense format to a torch tensor in COO format
     """
+
+    # mask upper triangular part of the matrix
+    adj_mat = torch.triu(adj_mat, diagonal=1)
+
     indices = torch.nonzero(adj_mat, as_tuple=True)
     return torch.stack(indices, dim=0)
 
@@ -47,7 +55,7 @@ def dense_to_attributes(adj_mat):
     return torch.tensor(adj_mat[adj_mat != 0]).view(-1, 1)
 
 
-def create_expression_connections(X, std_multiplier=1.0):
+def create_diff_exp_connections_norm(X, multiplier=1.0):
     """
     This function identifies and categorizes gene expression levels as
     under-expressed (-1), over-expressed (1), or baseline (0) based on standard
@@ -69,8 +77,8 @@ def create_expression_connections(X, std_multiplier=1.0):
     mean_exps = X.mean(dim=0)
     exps_std = X.std(dim=0)
 
-    lb_exps = mean_exps - exps_std * std_multiplier
-    ub_exps = mean_exps + exps_std * std_multiplier
+    lb_exps = mean_exps - exps_std * multiplier
+    ub_exps = mean_exps + exps_std * multiplier
 
     A_exps = torch.zeros_like(X)
 
@@ -81,3 +89,70 @@ def create_expression_connections(X, std_multiplier=1.0):
     A_exps[mask_above] = 1  # Set over-expressed elements
 
     return A_exps
+
+
+def diff_exp_connections_nbnom(expression_vector, var_multiplier=1):
+    """
+    Estimate the differential expression of a gene using the negative binomial distribution.
+
+    Args:
+        expression_vector (np.ndarray): The expression vector of the gene.
+        var_multiplier (int): The multiplier for the variance threshold. Default is 1.
+    Returns:
+        select_mask (np.ndarray): The mask of the selected samples.
+    """
+    if not isinstance(expression_vector, np.ndarray):
+        expression_vector = np.array(expression_vector)
+
+    # ignore all warnings
+    with warnings.catch_warnings():
+        # for some distributions, the fitting will fail, so ignore warnings for those
+        warnings.filterwarnings("ignore")
+        res = sm.NegativeBinomial(
+            expression_vector, np.ones_like(expression_vector)
+        ).fit(start_params=[1, 1], disp=0)
+
+    mu = np.exp(res.params[0])
+    p = 1 / (1 + mu * res.params[1])
+    r = mu * p / (1 - p)
+
+    var = r * (1 - p) / p**2
+    # var = np.sqrt(var)
+    # std = var # np.sqrt(var)
+    mask_above = expression_vector > mu + var * var_multiplier
+    mask_below = expression_vector < mu - var * var_multiplier
+
+    return mask_below, mask_above
+
+
+def create_diff_exp_connections_nbnom(X, var_multiplier=1.0):
+    """
+    This function identifies and categorizes gene expression levels as
+    under-expressed (-1), over-expressed (1), or baseline (0) based on the negative binomial distribution.
+
+    Args:
+        X (torch.Tensor): A 2D PyTorch tensor representing gene expression data,
+            with shape (samples, genes).
+        var_multiplier (float, optional): A hyperparameter that scales the
+            standard deviation to define the expression bounds. Higher values will result
+            in stricter bounds (std_multiplier=2.0 will consider values further than 2 sigma
+            from the mean to be differential) Defaults to 1.0.
+    Returns:
+        A (torch.Tensor): A 2D PyTorch tensor with the same shape as X, where each element
+            indicates the expression category (-1, 0, or 1) for the corresponding
+            gene in each sample.
+        isolated_nodes_mask (torch.Tensor): A 1D PyTorch tensor indicating the indices of
+            genes that are not differentially expressed.
+    """
+
+    A = torch.zeros_like(X)
+
+    for i in range(X.shape[1]):
+        mask_below, mask_above = diff_exp_connections_nbnom(X[:, i], var_multiplier)
+        A[mask_below, i] = -1
+        A[mask_above, i] = 1
+
+    # isolated_nodes_mask = torch.sum(torch.abs(A), dim=1) == 0
+    # A = A[~isolated_nodes_mask]
+
+    return A  # , isolated_nodes_mask

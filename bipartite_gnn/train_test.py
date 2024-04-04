@@ -11,31 +11,77 @@ class GNNTrainer:
         self.scheduler = scheduler
         self.params = params
 
-    def train(self, data: pyg.data.HeteroData, omic_layers):
+    def train_epoch(self, data: pyg.data.HeteroData):
         self.model.train()
         self.optimizer.zero_grad()
-        out = self.model(data, omic_layers)  # data, omic_layers
+
+        out = self.model(data)
 
         # calculate the loss for the training nodes only
-        loss = self.loss_fn(out, data.y[data.train_mask])
+        # TODO add class weights to the loss function
+        loss = self.loss_fn(
+            out[data.train_mask], data[data.omics[0]].y[data.train_mask]
+        )
 
         # L1 regularization for the projection layers
-        if self.model.projections is not None:
+        if self.model.projections is not None and self.params["l1_lambda"] > 0.0:
+            l1_reg = torch.tensor(0.0)
             for proj_layer in self.model.projections:
-                l1_reg = torch.tensor(0.0)
-                for param in self.model.projections.parameters():
-                    l1_reg += torch.norm(param, 1)
-                loss += l1_reg * self.params["l1_lambdas"]
+                l1_reg += torch.norm(proj_layer.weight, 1)
+            loss += l1_reg * self.params["l1_lambda"]
 
         loss.backward()
         self.optimizer.step()
+
         # scheduler step
         if self.scheduler is not None:
             self.scheduler.step()
 
-        return loss
+        return loss, out
 
-    def test(self, data: pyg.data.HeteroData, omic_layers, mode: str = "val"):
+    def train(self, data: pyg.data.HeteroData, n_epochs: int, lr=1e-3, log_interval=50):
+        """ """
+
+        for epoch in range(1, n_epochs + 1):
+            # very important to clone
+            train_loss, out = self.train_epoch(data.clone())
+
+            if epoch % log_interval == 0:
+                train_acc = accuracy_score(
+                    data[data.omics[0]].y[data.train_mask],
+                    out.argmax(dim=1)[data.train_mask],
+                )
+                train_f1_m = f1_score(
+                    data[data.omics[0]].y[data.train_mask],
+                    out.argmax(dim=1)[data.train_mask],
+                    average="macro",
+                )
+                train_f1_w = f1_score(
+                    data[data.omics[0]].y[data.train_mask],
+                    out.argmax(dim=1)[data.train_mask],
+                    average="weighted",
+                )
+
+                val_loss, val_acc, val_f1_m, val_f1_w = self.test(
+                    data.clone(), data.val_mask
+                )
+                test_loss, test_acc, test_f1_m, test_f1_w = self.test(
+                    data.clone(), data.test_mask
+                )
+
+                print(f"Epoch: {epoch:03d}, ")
+                print(
+                    f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Train F1 Macro: {train_f1_m:.4f}, Train F1 Weighted: {train_f1_w:.4f}"
+                )
+                print(
+                    f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Val F1 Macro: {val_f1_m:.4f}, Val F1 Weighted: {val_f1_w:.4f}"
+                )
+                print(
+                    f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.4f}, Test F1 Macro: {test_f1_m:.4f}, Test F1 Weighted: {test_f1_w:.4f}"
+                )
+                print("#" * 50)
+
+    def test(self, data: pyg.data.HeteroData, mask):
         """
         Run testing of the BiGNN model
 
@@ -51,21 +97,19 @@ class GNNTrainer:
         with torch.no_grad():
             self.model.eval()
             # mask for the validation or test nodes
-            mask = data.val_mask if mode == "val" else data.test_mask
-            y_pred = self.model(data, omic_layers)
+            out = self.model(data)
+            y_pred = out.argmax(dim=1)
             y_pred = y_pred[mask].to("cpu")
-            y_true = data.y[mask]
+            y_true = data[data.omics[0]].y[mask]
 
             # calculate metrics
             acc = accuracy_score(y_true, y_pred)
             f1_macro = f1_score(y_true, y_pred, average="macro")
             f1_weighted = f1_score(y_true, y_pred, average="weighted")
 
-            if mode == "val":
-                loss = self.loss_fn(y_pred, y_true)
-                return loss, acc, f1_macro, f1_weighted
+            loss = self.loss_fn(out[mask], y_true)
 
-            return acc, f1_macro, f1_weighted
+            return loss, acc, f1_macro, f1_weighted
 
     def test_feature_importance(
         self, data: pyg.data.HeteroData, omic_layers, mode: str = "zero"
