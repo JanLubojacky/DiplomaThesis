@@ -5,7 +5,7 @@ import statsmodels.api as sm
 import torch
 
 
-def cosine_similarity_matrix(matrix):
+def cosine_similarity_matrix(matrix, th=0.9):
     """
     Given a matrix of (n_samples, n_features) compute the cosine similarities, between the samples
     """
@@ -24,15 +24,28 @@ def cosine_similarity_matrix(matrix):
     return cosine_similarities
 
 
-def keep_n_neighbours(A, n):
+def threshold_matrix(cosine_similarities, th=0.9):
+    A = (cosine_similarities > th).float() - torch.eye(cosine_similarities.shape[0])
+
+    print(
+        f"Isolated samples = {(A.sum(dim=1) == 0).sum()}, avg degree = {A.sum(dim=1).mean()}"
+    )
+
+    return A
+
+
+def keep_n_neighbours(cosine_similarity, n):
     """
     Keep only the n highest values in each row of a matrix, setting all other values to 0
     """
-    rows, cols = A.shape
-    for i in range(rows):
-        bottom_k_indices = torch.topk(A[i], n, largest=False).indices
-        A[i][bottom_k_indices] = 0
-    return A
+    rows, cols = cosine_similarity.shape
+    A = torch.zeros_like(cosine_similarity)
+
+    top_k_indices = torch.topk(cosine_similarity, n, largest=True, dim=1).indices
+    print(top_k_indices)
+    A[top_k_indices] = 1
+
+    return cosine_similarity.ceil()
 
 
 def dense_to_coo(adj_mat):

@@ -19,9 +19,7 @@ class GNNTrainer:
 
         # calculate the loss for the training nodes only
         # TODO add class weights to the loss function
-        loss = self.loss_fn(
-            out[data.train_mask], data[data.omics[0]].y[data.train_mask]
-        )
+        loss = self.loss_fn(out[data.train_mask], data.y[data.train_mask])
 
         # L1 regularization for the projection layers
         if self.model.projections is not None and self.params["l1_lambda"] > 0.0:
@@ -39,25 +37,25 @@ class GNNTrainer:
 
         return loss, out
 
-    def train(self, data: pyg.data.HeteroData, n_epochs: int, lr=1e-3, log_interval=50):
+    def train(self, data: pyg.data.HeteroData, epochs: int, lr=1e-3, log_interval=50):
         """ """
 
-        for epoch in range(1, n_epochs + 1):
+        for epoch in range(1, epochs + 1):
             # very important to clone
             train_loss, out = self.train_epoch(data.clone())
 
             if epoch % log_interval == 0:
                 train_acc = accuracy_score(
-                    data[data.omics[0]].y[data.train_mask],
+                    data.y[data.train_mask],
                     out.argmax(dim=1)[data.train_mask],
                 )
                 train_f1_m = f1_score(
-                    data[data.omics[0]].y[data.train_mask],
+                    data.y[data.train_mask],
                     out.argmax(dim=1)[data.train_mask],
                     average="macro",
                 )
                 train_f1_w = f1_score(
-                    data[data.omics[0]].y[data.train_mask],
+                    data.y[data.train_mask],
                     out.argmax(dim=1)[data.train_mask],
                     average="weighted",
                 )
@@ -100,7 +98,7 @@ class GNNTrainer:
             out = self.model(data)
             y_pred = out.argmax(dim=1)
             y_pred = y_pred[mask].to("cpu")
-            y_true = data[data.omics[0]].y[mask]
+            y_true = data.y[mask]
 
             # calculate metrics
             acc = accuracy_score(y_true, y_pred)

@@ -1,12 +1,45 @@
 import torch
 import torch.nn.functional as F
 import torch_geometric as pyg
+from torch_geometric.nn import GATv2Conv
 
 from bipartite_gnn.feat_integration_models import (VCDN, AttentionIntegration,
                                                    LinearIntegration)
 
 
-class BipartiteGNN(torch.nn.Module):
+class GAT_2L(torch.nn.Module):
+    # """"""
+    def __init__(self, input_shape, n_classes, channels, heads, dropout=0.1):
+        super().__init__()
+        torch.manual_seed(1234567)
+        self.projections = None
+        self.conv1 = GATv2Conv(
+            input_shape, channels, heads, dropout=dropout, add_self_loops=False
+        )
+        self.conv2 = GATv2Conv(
+            channels * heads,
+            n_classes,
+            heads=1,
+            concat=False,
+            dropout=dropout,
+            add_self_loops=False,
+        )
+
+    def forward(self, data):
+        """
+        Returns the logits for the sample nodes
+        """
+        x, edge_index = data.x, data.edge_index
+
+        # x = F.dropout(x, p=0.0, training=self.training)
+        x = F.elu(self.conv1(x, edge_index))
+        # x = F.dropout(x, p=0.0, training=self.training)
+        x = self.conv2(x, edge_index)
+
+        return x
+
+
+class BipartiteRGAT(torch.nn.Module):
     """
     implement the bipartite graph model using RGAT conv
     """

@@ -219,18 +219,22 @@ def mlp_eval(
             X_val = std_scale.transform(X_val)
             X_test = std_scale.transform(X_test)
 
+            X_train = torch.tensor(X_train, dtype=torch.float32)
+            X_val = torch.tensor(X_val, dtype=torch.float32)
+            X_test = torch.tensor(X_test, dtype=torch.float32)
+
             train_loader = torch.utils.data.DataLoader(
-                MLPDataset(torch.Tensor(X_train), torch.tensor(y[train_index])),
+                MLPDataset(X_train, y[train_index]),
                 batch_size=params["batch_sz"],
                 num_workers=os.cpu_count() - 1,
             )
             val_loader = torch.utils.data.DataLoader(
-                MLPDataset(torch.Tensor(X_val), torch.tensor(y[val_idx])),
+                MLPDataset(X_val, y[val_idx]),
                 batch_size=params["batch_sz"],
                 num_workers=os.cpu_count() - 1,
             )
             test_loader = torch.utils.data.DataLoader(
-                MLPDataset(torch.Tensor(X_test), torch.tensor(y[test_idx])),
+                MLPDataset(X_test, y[test_idx]),
                 batch_size=params["batch_sz"],
                 num_workers=os.cpu_count() - 1,
             )
