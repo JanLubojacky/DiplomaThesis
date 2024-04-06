@@ -81,6 +81,7 @@ class BipartiteRGAT(torch.nn.Module):
         self.projections = torch.nn.ModuleList()
         # self.skip_connections = torch.nn.ModuleList() # <- this is probably better than adding manual self-connections
         self.rgat_convs = torch.nn.ModuleList()
+        self.self_loops = torch.nn.ModuleList()
 
         for i in range(len(input_sizes)):
             self.projections.append(pyg.nn.Linear(input_sizes[i], proj_dim))
@@ -101,6 +102,9 @@ class BipartiteRGAT(torch.nn.Module):
                     # edge_dim, if there is any
                 )
             )
+            # self.self_loops.append(
+            #     pyg.nn.Linear(hidden_channels[i], hidden_channels[i + 1])
+            # )
 
         if feature_integration_mode == "linear":
             self.integration_module = LinearIntegration(
@@ -157,18 +161,22 @@ class BipartiteRGAT(torch.nn.Module):
             # x = F.droupout(x, training=self.training)
             data[omic].x = x
 
+        print("x shape after projection:", x.shape)
+
         data_hom = data.to_homogeneous()
 
         # Apply RGAT convolutions
         for rgat_conv in self.rgat_convs:
-            data_hom.x = rgat_conv(data_hom.x, data_hom.edge_index, data_hom.edge_type)
+            data_hom.x = rgat_conv(
+                data_hom.x, data_hom.edge_index, data_hom.edge_type
+            ).relu()
 
         # take each omic and stack them to obtain x = (n_omics, n_samples, n_features)
         x = torch.zeros(
             (len(data.omics), data[data.omics[0]].x.shape[0], data_hom.x.shape[1])
         )
 
-        print(x.shape)
+        print("integration shape", x.shape)
 
         # assuming that the first n indices correspond to sample nodes
         for i in range(len(data.omics)):

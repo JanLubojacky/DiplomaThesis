@@ -25,7 +25,7 @@ def cosine_similarity_matrix(matrix, th=0.9):
 
 
 def threshold_matrix(cosine_similarities, th=0.9):
-    A = (cosine_similarities > th).float() - torch.eye(cosine_similarities.shape[0])
+    A = (cosine_similarities > th).float()  # - torch.eye(cosine_similarities.shape[0])
 
     print(
         f"Isolated samples = {(A.sum(dim=1) == 0).sum()}, avg degree = {A.sum(dim=1).mean()}"
@@ -39,13 +39,14 @@ def keep_n_neighbours(cosine_similarity, n):
     Keep only the n highest values in each row of a matrix, setting all other values to 0
     """
     rows, cols = cosine_similarity.shape
-    A = torch.zeros_like(cosine_similarity)
+    A = torch.ones_like(cosine_similarity)
 
     top_k_indices = torch.topk(cosine_similarity, n, largest=True, dim=1).indices
     print(top_k_indices)
-    A[top_k_indices] = 1
+    for r in range(rows):
+        A[r, top_k_indices[r]] = 1
 
-    return cosine_similarity.ceil()
+    return A
 
 
 def dense_to_coo(adj_mat):
@@ -54,9 +55,10 @@ def dense_to_coo(adj_mat):
     """
 
     # mask upper triangular part of the matrix
-    adj_mat = torch.triu(adj_mat, diagonal=1)
+    # adj_mat = torch.triu(adj_mat, diagonal=1)
 
     indices = torch.nonzero(adj_mat, as_tuple=True)
+
     return torch.stack(indices, dim=0)
 
 

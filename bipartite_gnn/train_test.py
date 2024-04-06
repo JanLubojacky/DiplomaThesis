@@ -4,7 +4,7 @@ from sklearn.metrics import accuracy_score, f1_score
 
 
 class GNNTrainer:
-    def __init__(self, model, optimizer, params, loss_fn, scheduler=None):
+    def __init__(self, model, optimizer, loss_fn, params, scheduler=None):
         self.model = model
         self.loss_fn = loss_fn
         self.optimizer = optimizer
