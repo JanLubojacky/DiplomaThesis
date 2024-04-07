@@ -3,8 +3,7 @@ import torch.nn.functional as F
 import torch_geometric as pyg
 from torch_geometric.nn import GATv2Conv
 
-from bipartite_gnn.feat_integration_models import (VCDN, AttentionIntegration,
-                                                   LinearIntegration)
+from bipartite_gnn.feat_integration_models import LinearIntegration
 
 
 class GAT_2L(torch.nn.Module):
@@ -39,6 +38,101 @@ class GAT_2L(torch.nn.Module):
         return x
 
 
+class BiRGAT(torch.nn.Module):
+    def __init__(
+        self,
+        omic_channels,
+        feature_names,
+        relations,
+        input_dims,
+        num_classes,
+        proj_dim,
+        hidden_channels,
+        heads,
+    ) -> None:
+        super().__init__()
+
+        self.omic_channels = omic_channels
+
+        all_names = omic_channels + feature_names
+
+        self.projections = {
+            omic: pyg.nn.Linear(input_dim, proj_dim)
+            for omic, input_dim in zip(omic_channels, input_dims)
+        }
+
+        # omic_channels has names of the omics
+        # input_dims has the dimensions of the omics
+        # create a dict with the projections whete key is the omic name and value is the projection layer
+
+        self.conv1 = pyg.nn.HeteroConv(
+            {
+                relation: pyg.nn.GATv2Conv(
+                    proj_dim, hidden_channels[0], heads=heads, concat=False
+                )
+                for relation in relations
+            }
+        )
+        self.self_loops1 = {
+            name: pyg.nn.Linear(
+                proj_dim, hidden_channels[0], weight_initializer="glorot"
+            )
+            for name in all_names
+        }
+
+        self.conv2 = pyg.nn.HeteroConv(
+            {
+                relation: pyg.nn.GATv2Conv(
+                    hidden_channels[0], hidden_channels[1], heads=heads, concat=False
+                )
+                for relation in relations
+            }
+        )
+        self.self_loops1 = {
+            name: pyg.nn.Linear(
+                hidden_channels[0], hidden_channels[1], weight_initializer="glorot"
+            )
+            for name in all_names
+        }
+
+        # self.conv3 = pyg.nn.HeteroConv()
+        # self.self_loops3 = {}
+
+        self.integration_module = LinearIntegration(
+            n_views=len(omic_channels),
+            view_dim=hidden_channels[1],
+            n_classes=num_classes,
+        )
+
+    def forward(self, x_dict, edge_dict):
+        """
+        Returns the logits for the sample nodes
+
+        Args:
+            data: HeteroData
+
+        Returns:
+            x (n_samples, n_classes): torch.Tensor
+        """
+
+        for omic in self.omic_channels:
+            x_dict[omic] = F.relu(self.projections[omic](x_dict[omic]))
+
+        x1 = self.conv1(x_dict, edge_dict)
+        for key in x_dict.keys():
+            x1[key] = x1[key] + self.self_loops1[key](x_dict[key])
+        x1 = x1.relu()
+
+        x2 = self.conv2(x1, edge_dict)
+        for key in x_dict.keys():
+            x2[key] = x2[key] + self.self_loops2[key](x1[key])
+        x2 = x2.relu()
+
+        x_sample_features = torch.cat([x2[omic] for omic in self.omic_channels], dim=1)
+
+        return self.integration_module(x_sample_features)
+
+
 class BipartiteRGAT(torch.nn.Module):
     """
     implement the bipartite graph model using RGAT conv
@@ -48,14 +142,8 @@ class BipartiteRGAT(torch.nn.Module):
         self,
         input_sizes,
         proj_dim,
-        # proj_dropout,
-        # num_layers,
         num_relations,  # dataset.num_relations
-        num_bases,  # array of shape (num_layers,)
         num_heads,  # array of shape (num_layers,)
-        dropout,  # array of shape (num_layers,)
-        # attention_mode,
-        # qkv_dim,
         hidden_channels,  # array of shape (num_layers,)
         num_labels,
         feature_integration_mode,
@@ -79,56 +167,86 @@ class BipartiteRGAT(torch.nn.Module):
         super().__init__()
 
         self.projections = torch.nn.ModuleList()
-        # self.skip_connections = torch.nn.ModuleList() # <- this is probably better than adding manual self-connections
         self.rgat_convs = torch.nn.ModuleList()
         self.self_loops = torch.nn.ModuleList()
 
         for i in range(len(input_sizes)):
             self.projections.append(pyg.nn.Linear(input_sizes[i], proj_dim))
 
-        for i in range(len(hidden_channels) - 1):
-            self.rgat_convs.append(
-                pyg.nn.RGATConv(
-                    in_channels=hidden_channels[i],
-                    out_channels=hidden_channels[i + 1],
-                    num_relations=num_relations,
-                    num_bases=num_bases,
-                    # num_blocks=num_blocks,
-                    # attention_mode=attention_mode,
-                    # mod="f-scaled",  # cardinality preservation
-                    heads=num_heads,
-                    # dim=qkv_dim, qkv dimension
-                    dropout=dropout,
-                    # edge_dim, if there is any
-                )
-            )
-            # self.self_loops.append(
-            #     pyg.nn.Linear(hidden_channels[i], hidden_channels[i + 1])
-            # )
+        self.rgat_conv1 = pyg.nn.RGATConv(
+            in_channels=proj_dim,
+            out_channels=hidden_channels[0],
+            num_relations=num_relations,
+            mod="f-scaled",  # cardinality preservation
+            heads=num_heads,
+        )
+        self.self_loops1 = pyg.nn.Linear(
+            proj_dim, hidden_channels[0], weight_initializer="glorot"
+        )
+        self.rgat_conv2 = pyg.nn.RGATConv(
+            in_channels=hidden_channels[0] * num_heads,
+            out_channels=hidden_channels[1],
+            num_relations=num_relations,
+            mod="f-scaled",  # cardinality preservation
+            heads=1,  # num_heads,
+        )
+        self.self_loops2 = pyg.nn.Linear(
+            hidden_channels[0], hidden_channels[1], weight_initializer="glorot"
+        )
 
-        if feature_integration_mode == "linear":
-            self.integration_module = LinearIntegration(
-                n_views=len(input_sizes),
-                view_dim=hidden_channels[-1],
-                n_classes=num_labels,
-            )
-        elif feature_integration_mode == "attention":
-            self.integration_module = AttentionIntegration(
-                len(input_sizes),
-                view_dim=hidden_channels[-1],
-                n_classes=num_labels,
-            )
-        elif feature_integration_mode == "vcdn":
-            self.integration_module = VCDN(
-                len(input_sizes),
-                hidden_channels[-1],
-                num_labels,
-                convolutional=vcdn_conv_mode,
-            )
-        else:
-            raise ValueError(
-                "Unknown feature integration mode, please choose one of linear, attention, vcdn"
-            )
+        self.linear = pyg.nn.Linear(hidden_channels[1], num_labels)
+        # self.self_loops2 = pyg.nn.Linear(hidden_channels[i], hidden_channels[i + 1])
+
+        # if feature_integration_mode == "linear":
+        #     self.integration_module = LinearIntegration(
+        #         n_views=len(input_sizes),
+        #         view_dim=hidden_channels[-1],
+        #         n_classes=num_labels,
+        #     )
+        # elif feature_integration_mode == "attention":
+        #     self.integration_module = AttentionIntegration(
+        #         len(input_sizes),
+        #         view_dim=hidden_channels[-1],
+        #         n_classes=num_labels,
+        #     )
+        # elif feature_integration_mode == "vcdn":
+        #     self.integration_module = VCDN(
+        #         len(input_sizes),
+        #         hidden_channels[-1],
+        #         num_labels,
+        #         convolutional=vcdn_conv_mode,
+        #     )
+        # else:
+        #     raise ValueError(
+        #         "Unknown feature integration mode, please choose one of linear, attention, vcdn"
+        #     )
+
+    def forward(self, data: pyg.data.HeteroData):
+        """
+        Accepts a HeteroData object
+
+        Args:
+            data: HeteroData
+            omic_layers: list of indices for omic nodes
+        """
+
+        # project all input features to the same dimension
+        for omic, projection in zip(data.omics, self.projections):
+            x = F.relu(projection(data[omic].x))
+            data[omic].x = x
+
+        data_hom = data.to_homogeneous()
+
+        x = data_hom.x
+        edge_index = data_hom.edge_index
+        edge_type = data_hom.edge_type
+
+        x = self.rgat_conv1(x, edge_index, edge_type)  # + self.self_loops1(x)
+        x = x.relu()
+        x = self.rgat_conv2(x, edge_index, edge_type)  # + self.self_loops2(x)
+        x = x.relu()
+
+        return self.linear(x[data_hom.node_type == 0])
 
     def feature_importance_projection(self, feature_names):
         """
@@ -145,42 +263,14 @@ class BipartiteRGAT(torch.nn.Module):
 
         return feature_importances
 
-    def forward(self, data: pyg.data.HeteroData):
-        """
-        Accepts a HeteroData object
-
-        Args:
-            data: HeteroData
-            omic_layers: list of indices for omic nodes
-        """
-
-        # project all input features to the same dimension
-        for omic, projection in zip(data.omics, self.projections):
-            # print(data[omic].x.shape)
-            x = F.relu(projection(data[omic].x))
-            # x = F.droupout(x, training=self.training)
-            data[omic].x = x
-
-        print("x shape after projection:", x.shape)
-
-        data_hom = data.to_homogeneous()
-
-        # Apply RGAT convolutions
-        for rgat_conv in self.rgat_convs:
-            data_hom.x = rgat_conv(
-                data_hom.x, data_hom.edge_index, data_hom.edge_type
-            ).relu()
-
         # take each omic and stack them to obtain x = (n_omics, n_samples, n_features)
-        x = torch.zeros(
-            (len(data.omics), data[data.omics[0]].x.shape[0], data_hom.x.shape[1])
-        )
-
-        print("integration shape", x.shape)
+        # x = torch.zeros(
+        #     (len(data.omics), data[data.omics[0]].x.shape[0], data_hom.x.shape[1])
+        # )
 
         # assuming that the first n indices correspond to sample nodes
-        for i in range(len(data.omics)):
-            x[i] = data_hom.x[data_hom.node_type == i]
+        # for i in range(len(data.omics)):
+        #     x[i] = data_hom.x[data_hom.node_type == i]
 
         # integrate the omic views to obtain the final prediction
-        return self.integration_module(x)
+        # return self.integration_module(x)

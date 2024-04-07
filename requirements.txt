@@ -11,3 +11,4 @@ torchaudio
 lightning
 requests
 ipywidgets
+statsmodels
