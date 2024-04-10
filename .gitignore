@@ -17,3 +17,5 @@ string_db
 mirna_db
 data/*
 lightning_logs/
+miRDB_v6.0_prediction_result.txt
+hsa.highScore.mirna.txt
