@@ -49,10 +49,12 @@ class BiRGAT(torch.nn.Module):
         proj_dim,
         hidden_channels,
         heads,
+        dropout,
     ) -> None:
         super().__init__()
 
         self.omic_channels = omic_channels
+        self.heads = heads
 
         all_names = omic_channels + feature_names
 
@@ -61,6 +63,12 @@ class BiRGAT(torch.nn.Module):
             for omic, input_dim in zip(omic_channels, input_dims)
         }
 
+        print("omic_channels: ", self.omic_channels)
+        print("feature_names: ", feature_names)
+        print("all_names: ", all_names)
+
+        print("projections: ", self.projections)
+
         # omic_channels has names of the omics
         # input_dims has the dimensions of the omics
         # create a dict with the projections whete key is the omic name and value is the projection layer
@@ -68,14 +76,19 @@ class BiRGAT(torch.nn.Module):
         self.conv1 = pyg.nn.HeteroConv(
             {
                 relation: pyg.nn.GATv2Conv(
-                    proj_dim, hidden_channels[0], heads=heads, concat=False
+                    proj_dim,
+                    hidden_channels[0],
+                    heads=heads,
+                    concat=True,
+                    add_self_loops=False,
+                    dropout=dropout,
                 )
                 for relation in relations
             }
         )
         self.self_loops1 = {
             name: pyg.nn.Linear(
-                proj_dim, hidden_channels[0], weight_initializer="glorot"
+                proj_dim, hidden_channels[0], weight_initializer="kaiming_uniform"
             )
             for name in all_names
         }
@@ -83,28 +96,63 @@ class BiRGAT(torch.nn.Module):
         self.conv2 = pyg.nn.HeteroConv(
             {
                 relation: pyg.nn.GATv2Conv(
-                    hidden_channels[0], hidden_channels[1], heads=heads, concat=False
+                    hidden_channels[0] * heads,
+                    hidden_channels[1],
+                    heads=heads,
+                    concat=True,
+                    add_self_loops=False,
+                    dropout=dropout,
                 )
                 for relation in relations
             }
         )
-        self.self_loops1 = {
+        self.self_loops2 = {
             name: pyg.nn.Linear(
-                hidden_channels[0], hidden_channels[1], weight_initializer="glorot"
+                hidden_channels[0] * heads,
+                hidden_channels[1],
+                weight_initializer="kaiming_uniform",
             )
             for name in all_names
         }
 
-        # self.conv3 = pyg.nn.HeteroConv()
-        # self.self_loops3 = {}
+        self.conv3 = pyg.nn.HeteroConv(
+            {
+                relation: pyg.nn.GATv2Conv(
+                    hidden_channels[1] * heads,
+                    hidden_channels[2],
+                    heads=heads,
+                    concat=False,
+                    add_self_loops=False,
+                    dropout=dropout,
+                )
+                for relation in relations
+            }
+        )
+        self.self_loops3 = {
+            name: pyg.nn.Linear(
+                hidden_channels[1] * heads,
+                hidden_channels[2],
+                weight_initializer="kaiming_uniform",
+            )
+            for name in all_names
+        }
 
-        self.integration_module = LinearIntegration(
+        self.linears = {
+            omic: pyg.nn.Linear(
+                hidden_channels[2],
+                hidden_channels[3],
+                weight_initializer="kaiming_uniform",
+            )
+            for omic in omic_channels
+        }
+
+        self.classifier = LinearIntegration(
             n_views=len(omic_channels),
-            view_dim=hidden_channels[1],
+            view_dim=hidden_channels[-1],
             n_classes=num_classes,
         )
 
-    def forward(self, x_dict, edge_dict):
+    def forward(self, data):
         """
         Returns the logits for the sample nodes
 
@@ -115,22 +163,56 @@ class BiRGAT(torch.nn.Module):
             x (n_samples, n_classes): torch.Tensor
         """
 
+        x_dict = data.x_dict
+        edge_dict = data.edge_index_dict
+
         for omic in self.omic_channels:
             x_dict[omic] = F.relu(self.projections[omic](x_dict[omic]))
 
         x1 = self.conv1(x_dict, edge_dict)
-        for key in x_dict.keys():
-            x1[key] = x1[key] + self.self_loops1[key](x_dict[key])
-        x1 = x1.relu()
+        for key in self.omic_channels:
+            x1[key] = x1[key] + self.self_loops1[key](x_dict[key]).repeat(1, self.heads)
+        x1 = {key: F.elu(x1[key]) for key in x_dict.keys()}
 
         x2 = self.conv2(x1, edge_dict)
-        for key in x_dict.keys():
-            x2[key] = x2[key] + self.self_loops2[key](x1[key])
-        x2 = x2.relu()
+        for key in self.omic_channels:  # x_dict.keys():
+            x2[key] = x2[key] + self.self_loops2[key](x1[key]).repeat(1, self.heads)
+        x2 = {key: F.elu(x2[key]) for key in x_dict.keys()}
 
-        x_sample_features = torch.cat([x2[omic] for omic in self.omic_channels], dim=1)
+        x3 = self.conv3(x2, edge_dict)
+        for key in self.omic_channels:
+            x3[key] = x3[key] + self.self_loops3[key](x2[key])
+        x3 = {key: F.elu(x3[key]) for key in x_dict.keys()}
 
-        return self.integration_module(x_sample_features)
+        # pass trough linear layer
+        for key in self.omic_channels:
+            x3[key] = self.linears[key](x3[key])
+            x3[key] = F.elu(x3[key])
+            x3[key] = F.dropout(x3[key], p=0.2, training=self.training)
+
+        # stack the omic features into one tensor
+        # x_sample_features = torch.cat([x3[omic] for omic in self.omic_channels], dim=1)
+        x_stack = []
+        for omic in self.omic_channels:
+            x_stack.append(x3[omic])
+        x_sample_features = torch.stack(x_stack)
+
+        # x_sample_features = F.elu(self.lin1(x_sample_features))
+        # x_sample_features = F.dropout(x_sample_features, p=0.3, training=self.training)
+        # x_sample_features = F.elu(self.lin2(x_sample_features))
+        # x_sample_features = F.dropout(x_sample_features, p=0.5, training=self.training)
+
+        return self.classifier(x_sample_features)
+
+    def projection_layers_l1_norm(self):
+        """
+        Returns the l1 norm of the projection layers
+        """
+        l1_norm = torch.tensor(0.0)
+        for proj_layer in self.projections.values():
+            l1_norm += torch.norm(proj_layer.weight, p=1)
+
+        return l1_norm
 
 
 class BipartiteRGAT(torch.nn.Module):
@@ -177,22 +259,22 @@ class BipartiteRGAT(torch.nn.Module):
             in_channels=proj_dim,
             out_channels=hidden_channels[0],
             num_relations=num_relations,
-            mod="f-scaled",  # cardinality preservation
+            # mod="f-scaled",  # cardinality preservation
             heads=num_heads,
         )
-        self.self_loops1 = pyg.nn.Linear(
-            proj_dim, hidden_channels[0], weight_initializer="glorot"
-        )
+        # self.self_loops1 = pyg.nn.Linear(
+        #     proj_dim, hidden_channels[0], weight_initializer="kaiming_uniform"
+        # )
         self.rgat_conv2 = pyg.nn.RGATConv(
             in_channels=hidden_channels[0] * num_heads,
             out_channels=hidden_channels[1],
             num_relations=num_relations,
-            mod="f-scaled",  # cardinality preservation
+            # mod="f-scaled",  # cardinality preservation
             heads=1,  # num_heads,
         )
-        self.self_loops2 = pyg.nn.Linear(
-            hidden_channels[0], hidden_channels[1], weight_initializer="glorot"
-        )
+        # self.self_loops2 = pyg.nn.Linear(
+        #     hidden_channels[0], hidden_channels[1], weight_initializer="kaiming_uniform"
+        # )
 
         self.linear = pyg.nn.Linear(hidden_channels[1], num_labels)
         # self.self_loops2 = pyg.nn.Linear(hidden_channels[i], hidden_channels[i + 1])

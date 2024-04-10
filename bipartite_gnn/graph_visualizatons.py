@@ -9,7 +9,7 @@ def visualize_graph(G, color):
     plt.yticks([])
     nx.draw_networkx(
         G,
-        pos=nx.spring_layout(G, seed=42),
+        pos=nx.spring_layout(G, seed=4),
         with_labels=False,
         node_color=color,
         cmap="Set2",

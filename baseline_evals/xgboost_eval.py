@@ -21,7 +21,7 @@ def xgboost_eval(
     verbose: bool = True,
 ) -> dict:
     """
-    Evaluates k-Nearest Neighbors (kNN) classification performance using cross-validation.
+    Evaluates XGBoost classification performance using cross-validation.
 
     Args:
     X (np.ndarray): Input data matrix with shape (n_samples, n_features).

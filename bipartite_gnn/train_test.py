@@ -10,6 +10,7 @@ class GNNTrainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.params = params
+        self.train_class_weights = None
 
     def one_epoch(self, data: pyg.data.HeteroData):
         self.model.train()
@@ -19,21 +20,22 @@ class GNNTrainer:
 
         # calculate the loss for the training nodes only
         # TODO add class weights to the loss function
-        loss = self.loss_fn(out[data.train_mask], data.y[data.train_mask])
+        loss = self.loss_fn(
+            out[data.train_mask],
+            data.y[data.train_mask],
+        )
+        val_loss = self.loss_fn(out[data.val_mask], data.y[data.val_mask])
 
         # L1 regularization for the projection layers
         if self.model.projections is not None and self.params["l1_lambda"] > 0.0:
-            l1_reg = torch.tensor(0.0)
-            for proj_layer in self.model.projections:
-                l1_reg += torch.norm(proj_layer.weight.to("cpu"), 1)
-            loss += l1_reg * self.params["l1_lambda"]
+            loss += self.model.projection_layers_l1_norm() * self.params["l1_lambda"]
 
         loss.backward()
         self.optimizer.step()
 
         # scheduler step
         if self.scheduler is not None:
-            self.scheduler.step()
+            self.scheduler.step(val_loss)
 
         return loss, out
 
@@ -46,6 +48,12 @@ class GNNTrainer:
         # Move the model and data to the device
         self.model.to(device)
         data = data.to(device)
+
+        train_classes = data.y[data.train_mask]
+
+        ccounts = torch.unique(train_classes, return_counts=True)[1]
+        inv_w = 1.0 / ccounts.float()
+        self.train_class_weights = inv_w / inv_w.sum()
 
         for epoch in range(1, epochs + 1):
             # very important to clone
@@ -65,14 +73,12 @@ class GNNTrainer:
                     data.y[data.train_mask],
                     out.argmax(dim=1)[data.train_mask].to("cpu"),
                     average="weighted",
-                ).to("cpu")
+                )
 
                 val_loss, val_acc, val_f1_m, val_f1_w = self.test(data, data.val_mask)
                 test_loss, test_acc, test_f1_m, test_f1_w = self.test(
                     data, data.test_mask
                 )
-
-                # torch.cuda.empty_cache()
 
                 print(f"Epoch: {epoch:03d}, ")
                 print(

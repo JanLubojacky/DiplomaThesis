@@ -1,8 +1,10 @@
 import warnings
 
 import numpy as np
+import polars as pl
 import statsmodels.api as sm
 import torch
+from tqdm import tqdm
 
 
 def cosine_similarity_matrix(matrix, th=0.9):
@@ -67,10 +69,10 @@ def dense_to_attributes(adj_mat):
     return the flattened weight entries from the matrix
     for use as edge attributes
     """
-    return torch.tensor(adj_mat[adj_mat != 0]).view(-1, 1)
+    return adj_mat[adj_mat != 0].view(-1, 1)
 
 
-def create_diff_exp_connections_norm(X, multiplier=1.0):
+def create_diff_exp_connections_norm(X, train_mask, multiplier=1.0):
     """
     This function identifies and categorizes gene expression levels as
     under-expressed (-1), over-expressed (1), or baseline (0) based on standard
@@ -89,8 +91,12 @@ def create_diff_exp_connections_norm(X, multiplier=1.0):
             indicates the expression category (-1, 0, or 1) for the corresponding
             gene in each sample.
     """
-    mean_exps = X.mean(dim=0)
-    exps_std = X.std(dim=0)
+    # fit the differntial expression model
+    # based on the training mask
+    mean_exps = X[train_mask].mean(dim=0)
+    exps_std = X[train_mask].std(dim=0)
+    # mean_exps = X.mean(dim=0)
+    # exps_std = X.std(dim=0)
 
     lb_exps = mean_exps - exps_std * multiplier
     ub_exps = mean_exps + exps_std * multiplier
@@ -102,6 +108,13 @@ def create_diff_exp_connections_norm(X, multiplier=1.0):
 
     A_exps[mask_below] = -1  # Set under-expressed elements
     A_exps[mask_above] = 1  # Set over-expressed elements
+
+    print("isolated sample nodes, isolated gene nodes, mean degree: ")
+    print(
+        (A_exps.abs().sum(axis=1) == 0).sum(),
+        (A_exps.abs().sum(axis=0) == 0).sum(),
+        A_exps.abs().sum() / A_exps.shape[0],
+    )
 
     return A_exps
 
@@ -140,7 +153,7 @@ def diff_exp_connections_nbnom(expression_vector, var_multiplier=1):
     return mask_below, mask_above
 
 
-def create_diff_exp_connections_nbnom(X, var_multiplier=1.0):
+def create_diff_exp_connections_nbnom(X, train_mask, var_multiplier=1.0):
     """
     This function identifies and categorizes gene expression levels as
     under-expressed (-1), over-expressed (1), or baseline (0) based on the negative binomial distribution.
@@ -162,6 +175,10 @@ def create_diff_exp_connections_nbnom(X, var_multiplier=1.0):
 
     A = torch.zeros_like(X)
 
+    # X = X[train_mask]
+
+    # print(A.shape, X.shape)
+
     for i in range(X.shape[1]):
         mask_below, mask_above = diff_exp_connections_nbnom(X[:, i], var_multiplier)
         A[mask_below, i] = -1
@@ -169,5 +186,44 @@ def create_diff_exp_connections_nbnom(X, var_multiplier=1.0):
 
     # isolated_nodes_mask = torch.sum(torch.abs(A), dim=1) == 0
     # A = A[~isolated_nodes_mask]
+    print("isolated sample nodes, isolated gene nodes, mean degree: ")
+    print(
+        (A.abs().sum(axis=1) == 0).sum(),
+        (A.abs().sum(axis=0) == 0).sum(),
+        A.abs().sum() / A.shape[0],
+    )
 
     return A  # , isolated_nodes_mask
+
+
+def gg_interactions(gene_list):
+    """ """
+
+    interactions_A = torch.zeros((len(gene_list), len(gene_list)))
+
+    interaction_data = pl.read_csv("biogrid_preprocessed_data.csv")
+
+    # iterate over each row in the dataframe
+    for row in tqdm(interaction_data.iter_rows()):
+        name_a = row[0]
+        name_b = row[1]
+        alias_a = row[2]
+        alias_b = row[3]
+
+        names_a = [name_a]
+        names_b = [name_b]
+
+        if alias_a:
+            names_a += alias_a.split("|")
+        if alias_b:
+            names_b += alias_b.split("|")
+
+        for gene_a in names_a:
+            if gene_a in gene_list:
+                for gene_b in names_b:
+                    if gene_b in gene_list:
+                        interactions_A[
+                            gene_list.index(gene_a), gene_list.index(gene_b)
+                        ] = 1
+
+    return interactions_A

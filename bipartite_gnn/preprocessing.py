@@ -3,6 +3,8 @@ import io
 import numpy as np
 import polars as pl
 import requests
+import torch
+from tqdm import tqdm
 
 
 class FeatureSelection:
@@ -90,6 +92,12 @@ class FeatureSelection:
 def ids_to_gene_names(ids, kind):
     """
     Using mygene.info api convert ensgs / ensps to gene names
+
+    Examples:
+        ensemble.gene: ENSG00000121410
+        ensemble.protein: ENSP00000344461
+        refseq: NM_001195426
+        miRBase: hsa-mir-21
     """
 
     allowed_kinds = ["ensembl.gene", "ensembl.protein", "refseq", "miRBase"]
@@ -107,20 +115,70 @@ def ids_to_gene_names(ids, kind):
     # Check for successful response
     if response.status_code == 200:
         data = response.json()
-        print(data)
+        # print(data)
 
         if kind == "miRBase":
             gene_names = [""] * len(data)
             for i, item in enumerate(data):
-                for alias in item["alias"]:
-                    if alias[:3] == "hsa":
-                        gene_names[i] = alias
+                if item.get("notfound"):
+                    gene_names[i] = None
+                    continue
+                if "alias" in item:
+                    for alias in item["alias"]:
+                        if alias[:3] == "hsa":
+                            gene_names[i] = alias
         else:
-            gene_names = [item["symbol"] for item in data]
+            gene_names = []
+
+            # without aliases for now
+            for item in data:
+                try:
+                    if item.get("notfound"):
+                        gene_names.append([None])
+                        continue
+                    gene_names.append(item["symbol"])
+                except Exception:
+                    gene_names.append(None)
 
         return gene_names
     else:
         raise Exception(f"Error fetching gene names: {response.status_code}")
+
+
+def get_mirna_gene_interactions(
+    mirna_names, mrna_names, mirna_mrna_db="mirna_mrna_interactions_DB.csv"
+):
+    """
+    Args:
+        mirna_names (list) : list of mirna names, in mature form, e.g. hsa-miR-99a-5p
+        mrna_names (list) : list of gene names such as BTBD3, ELOVL7, etc.
+        mirna_mrna_db (str) : path to the database with mirna-mrna interactions, it is expected to have
+        columns mirna and gene where each row is a mirna-mrna interaction
+    """
+
+    mirna_mrna_df = pl.read_csv(mirna_mrna_db)
+
+    if not isinstance(mirna_names, list):
+        mirna_names = list(mirna_names)
+    if not isinstance(mrna_names, list):
+        mrna_names = list(mrna_names)
+
+    mirna_mrna_df = mirna_mrna_df.filter(
+        pl.col("gene").is_in(mrna_names) & pl.col("mirna").is_in(mirna_names)
+    )
+
+    mirna_mrna_A = torch.zeros((len(mirna_names), len(mrna_names)))
+
+    print(mirna_mrna_A.shape)
+    mirna_idx = mirna_mrna_df.columns.index("mirna")
+    gene_idx = mirna_mrna_df.columns.index("gene")
+
+    for row in mirna_mrna_df.iter_rows():
+        mirna_mrna_A[
+            mirna_names.index(row[mirna_idx]), mrna_names.index(row[gene_idx])
+        ] = 1
+
+    return mirna_mrna_A
 
 
 def get_protein_protein_interactions(gene_names):
@@ -135,6 +193,79 @@ def get_protein_protein_interactions(gene_names):
     # map back to ensgs and gene names
 
     #
+
+
+def pp_interactions(gene_list_1, gene_list_2, db_file="string_db/ppi.csv"):
+    """ """
+
+    if not isinstance(gene_list_1, list):
+        gene_list_1 = list(gene_list_1)
+    if not isinstance(gene_list_2, list):
+        gene_list_2 = list(gene_list_2)
+
+    A = torch.zeros((len(gene_list_1), len(gene_list_2)))
+
+    ppi = pl.read_csv(db_file)
+
+    genes = gene_list_1 + gene_list_2
+
+    ppi = ppi.filter(pl.col("gene1").is_in(genes) & pl.col("gene2").is_in(genes))
+
+    g1_idx = ppi.columns.index("gene1")
+    g2_idx = ppi.columns.index("gene2")
+
+    for row in ppi.iter_rows():
+        A[gene_list_1.index(row[g1_idx]), gene_list_2.index(row[g2_idx])] = 1
+
+    return A
+
+
+def gg_interactions(gene_list):
+    """ """
+
+    interactions_A = torch.zeros((len(gene_list), len(gene_list)))
+
+    interaction_data = pl.read_csv("biogrid_preprocessed_data.csv")
+
+    # iterate over each row in the dataframe
+    for row in tqdm(interaction_data.iter_rows()):
+        name_a = row[0]
+        name_b = row[1]
+        alias_a = row[2]
+        alias_b = row[3]
+
+        names_a = [name_a]
+        names_b = [name_b]
+
+        if alias_a:
+            names_a += alias_a.split("|")
+        if alias_b:
+            names_b += alias_b.split("|")
+
+        # print(names_a, names_b)
+
+        # for i, gene in enumerate(gene_list):
+        #     if gene in names_a:
+        #         for j, gene_ in enumerate(gene_list):
+        #             if gene_ in names_b:
+        #                 # print(f"{gene} interacts with {gene_}")
+        #                 interactions_A[i, j] = 1
+        #                 break
+
+        # found = False
+        for gene_a in names_a:
+            # if found:
+            #     break
+            if gene_a in gene_list:
+                for gene_b in names_b:
+                    if gene_b in gene_list:
+                        interactions_A[
+                            gene_list.index(gene_a), gene_list.index(gene_b)
+                        ] = 1
+                        # found = True
+                        # break
+
+    return interactions_A
 
 
 def get_gene_gene_interactions(gene_list):
@@ -172,13 +303,6 @@ def get_gene_gene_interactions(gene_list):
         )
 
     return i_df
-
-
-def get_mirna_gene_interactions(mirna_names, gene_names):
-    """
-    Retrieve interactions between mirnas and genes
-    """
-    ...
 
 
 def get_thresholded_expressions(expressions, labels):
