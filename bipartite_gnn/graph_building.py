@@ -196,12 +196,23 @@ def create_diff_exp_connections_nbnom(X, train_mask, var_multiplier=1.0):
     return A  # , isolated_nodes_mask
 
 
-def gg_interactions(gene_list):
+def gg_interactions(gene_list, check_all_aliases=False):
     """ """
 
     interactions_A = torch.zeros((len(gene_list), len(gene_list)))
 
     interaction_data = pl.read_csv("biogrid_preprocessed_data.csv")
+
+    interaction_data = interaction_data.filter(
+        pl.col("Official Symbol Interactor A").is_in(gene_list)
+        & pl.col("Official Symbol Interactor B").is_in(gene_list)
+    )
+
+    a_idx = interaction_data.columns.index("Official Symbol Interactor A")
+    b_idx = interaction_data.columns.index("Official Symbol Interactor B")
+
+    for row in interaction_data.iterrows():
+        ...
 
     # iterate over each row in the dataframe
     for row in tqdm(interaction_data.iter_rows()):

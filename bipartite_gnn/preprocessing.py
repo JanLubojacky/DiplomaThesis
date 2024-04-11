@@ -220,12 +220,35 @@ def pp_interactions(gene_list_1, gene_list_2, db_file="string_db/ppi.csv"):
     return A
 
 
-def gg_interactions(gene_list):
+def gg_interactions(gene_list_1, gene_list_2, check_all_aliases=False):
     """ """
 
-    interactions_A = torch.zeros((len(gene_list), len(gene_list)))
+    interactions_A = torch.zeros((len(gene_list_1), len(gene_list_2)))
 
     interaction_data = pl.read_csv("biogrid_preprocessed_data.csv")
+
+    if not isinstance(gene_list_1, list):
+        gene_list_1 = list(gene_list_1)
+    if not isinstance(gene_list_2, list):
+        gene_list_2 = list(gene_list_2)
+
+    gene_list = gene_list_1 + gene_list_2
+
+    if not check_all_aliases:
+        a_idx = interaction_data.columns.index("Official Symbol Interactor A")
+        b_idx = interaction_data.columns.index("Official Symbol Interactor B")
+
+        interaction_data = interaction_data.filter(
+            pl.col("Official Symbol Interactor A").is_in(gene_list)
+            & pl.col("Official Symbol Interactor B").is_in(gene_list)
+        )
+
+        for row in interaction_data.iter_rows():
+            interactions_A[
+                gene_list_1.index(row[a_idx]), gene_list_2.index(row[b_idx])
+            ] = 1
+
+        return interactions_A
 
     # iterate over each row in the dataframe
     for row in tqdm(interaction_data.iter_rows()):

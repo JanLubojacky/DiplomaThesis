@@ -11,11 +11,13 @@ class LinearIntegration(torch.nn.Module):
         predictions for each class
     """
 
-    def __init__(self, n_views, view_dim, n_classes):
+    def __init__(self, n_views, view_dim, n_classes, hidden_dim, dropout=0.5):
         super().__init__()
-        self.classifier = pyg.nn.Linear(
-            -1, n_classes, weight_initializer="kaiming_uniform"
+        self.lin1 = pyg.nn.Linear(-1, hidden_dim, weight_initializer="kaiming_uniform")
+        self.lin2 = pyg.nn.Linear(
+            hidden_dim, n_classes, weight_initializer="kaiming_uniform"
         )
+        self.dropout = dropout
 
     def forward(self, x):
         """
@@ -27,8 +29,11 @@ class LinearIntegration(torch.nn.Module):
         # (n_samples, n_omics, n_features) -> (n_samples, n_features*n_omics)
         x = xt.reshape(xt.shape[0], -1)
 
-        return self.classifier(x)
-        # return F.relu(self.classifier(x))
+        x = self.lin1(x)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+
+        return self.lin2(x)
 
 
 class AttentionIntegration(torch.nn.Module):

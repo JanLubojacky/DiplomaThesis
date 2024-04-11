@@ -11,14 +11,20 @@ class GNNTrainer:
         self.scheduler = scheduler
         self.params = params
         self.train_class_weights = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def one_epoch(self, data: pyg.data.HeteroData):
         self.model.train()
         self.optimizer.zero_grad()
 
-        out = self.model(data.clone())
+        self.model.to(self.device)
+        self.model.move_to_device(self.device)
+        data = data.to(self.device)
+
+        out = self.model(data)
 
         # calculate the loss for the training nodes only
+        #
         # TODO add class weights to the loss function
         loss = self.loss_fn(
             out[data.train_mask],
@@ -43,26 +49,22 @@ class GNNTrainer:
         """ """
 
         # Set the device to CUDA if available, otherwise use CPU
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Move the model and data to the device
-        self.model.to(device)
-        data = data.to(device)
-
-        train_classes = data.y[data.train_mask]
-
-        ccounts = torch.unique(train_classes, return_counts=True)[1]
-        inv_w = 1.0 / ccounts.float()
-        self.train_class_weights = inv_w / inv_w.sum()
+        # self.model = self.model.to(self.device)
+        # data = data.to(device)
 
         for epoch in range(1, epochs + 1):
             # very important to clone
-            train_loss, out = self.one_epoch(data)
+            train_loss, out = self.one_epoch(data.clone())
 
             if epoch % log_interval == 0:
+                data = data.to("cpu")
+
                 train_acc = accuracy_score(
                     data.y[data.train_mask],
-                    out.argmax(dim=1)[data.train_mask].to("cpu"),
+                    out.argmax(dim=1).to("cpu")[data.train_mask],
                 )
                 train_f1_m = f1_score(
                     data.y[data.train_mask],

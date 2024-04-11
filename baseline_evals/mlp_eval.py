@@ -41,7 +41,7 @@ class MLPDataset(torch.utils.data.Dataset):
 
         # Apply transform if provided
         if self.transform:
-            X_sample = self.transform(X_sample)  # Convert to PyTorch tensor
+            X_sample = self.transform(X_sample)
 
         return X_sample, y_sample
 
@@ -74,6 +74,45 @@ class MLP(torch.nn.Module):
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 
+        return self.classifier(x)
+
+
+class SepareteMLP(torch.nn.Module):
+    def __init__(self, input_szs, num_classes, proj_dim, hidden_channels, dropout):
+        super().__init__()
+        torch.manual_seed(12345)
+
+        # create a separate projection layer for each input
+        self.projections = torch.nn.ModuleList(
+            [Linear(input_sz, proj_dim) for input_sz in input_szs]
+        )
+
+        self.dropout = dropout
+        self.hidden_layers = torch.nn.ModuleList(
+            [
+                Linear(hidden_channels[i], hidden_channels[i + 1])
+                for i in range(len(hidden_channels) - 1)
+            ]
+        )
+        self.classifier = Linear(hidden_channels[-1], num_classes)
+
+    def forward(self, x):
+        """
+        Expects input to be in shape (n_omics, n_samples, n_features)
+        """
+
+        # apply projection layer to each input
+        for i, proj in enumerate(self.projections):
+            x[i] = proj(x[i]).relu()
+
+        # apply projection layer
+        x = torch.cat([proj(x[i]) for i, proj in enumerate(self.projections)], dim=1)
+        x = F.relu(x)
+        # apply all hidden layers
+        for layer in self.hidden_layers:
+            x = layer(x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
         return self.classifier(x)
 
 
@@ -166,9 +205,10 @@ def mlp_eval(
         "f1_macro_std": 0.0,
         "f1_weighted_std": 0.0,
     }
+    # best_select_masks = []
 
     def objective(trial):
-        nonlocal best_results
+        nonlocal best_results  # , select_masks
 
         print(f"Trial {trial.number} / {n_trials}")
 
@@ -189,9 +229,22 @@ def mlp_eval(
             ],
         }
 
+        params = {
+            "lr": 1e-3,  # trial.suggest_float("lr", 1e-4, 1e-1, log=True),
+            "l2_lambda": 5e-4,  # trial.suggest_float("l2_lambda", 1e-5, 1e-2, log=True),
+            "l1_lambda": 0.0015844617502738152,
+            "batch_sz": 64,
+            "proj_dim": 47,
+            "dropout": 0.4237635831392694,
+            "hidden_channels": [70],
+            "num_layers": 1,
+        }
+
         accs = np.zeros(n_evals)
         f1_macros = np.zeros(n_evals)
         f1_weighteds = np.zeros(n_evals)
+
+        select_masks = []
 
         for i, (train_index, test_index) in enumerate(sss.split(X, y)):
             print(f"Eval {i+1} / {n_evals}")
@@ -208,7 +261,10 @@ def mlp_eval(
                 select_mask, select_idx = class_variational_selection(
                     X_train, y[train_index], n_features
                 )
+
+                select_masks.append(select_idx)
                 # select_mask = variance_filtering(X_train, n_features)
+
                 X_train = X_train[:, select_mask]
                 X_val = X_val[:, select_mask]
                 X_test = X_test[:, select_mask]
@@ -286,6 +342,10 @@ def mlp_eval(
                 )
                 break
 
+        print(accs)
+        print(f1_macros)
+        print(f1_weighteds)
+
         acc = np.mean(accs)
         f1_macro = np.mean(f1_macros)
         f1_weighted = np.mean(f1_weighteds)
@@ -309,6 +369,9 @@ def mlp_eval(
             best_results["f1_weighted_std"] = f1_weighted_std
 
             print(best_results)
+
+            # save the best model
+            # torch.save(mlp.state_dict(), "mlp_best_model.pth")
 
         return current_result
 

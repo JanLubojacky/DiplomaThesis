@@ -59,19 +59,11 @@ class BiRGAT(torch.nn.Module):
         all_names = omic_channels + feature_names
 
         self.projections = {
-            omic: pyg.nn.Linear(input_dim, proj_dim)
+            omic: pyg.nn.Linear(
+                input_dim, proj_dim, weight_initializer="kaiming_uniform"
+            )
             for omic, input_dim in zip(omic_channels, input_dims)
         }
-
-        print("omic_channels: ", self.omic_channels)
-        print("feature_names: ", feature_names)
-        print("all_names: ", all_names)
-
-        print("projections: ", self.projections)
-
-        # omic_channels has names of the omics
-        # input_dims has the dimensions of the omics
-        # create a dict with the projections whete key is the omic name and value is the projection layer
 
         self.conv1 = pyg.nn.HeteroConv(
             {
@@ -137,19 +129,11 @@ class BiRGAT(torch.nn.Module):
             for name in all_names
         }
 
-        self.linears = {
-            omic: pyg.nn.Linear(
-                hidden_channels[2],
-                hidden_channels[3],
-                weight_initializer="kaiming_uniform",
-            )
-            for omic in omic_channels
-        }
-
-        self.classifier = LinearIntegration(
+        self.integrator = LinearIntegration(
             n_views=len(omic_channels),
-            view_dim=hidden_channels[-1],
+            view_dim=hidden_channels[2],
             n_classes=num_classes,
+            hidden_dim=hidden_channels[3],
         )
 
     def forward(self, data):
@@ -184,25 +168,12 @@ class BiRGAT(torch.nn.Module):
             x3[key] = x3[key] + self.self_loops3[key](x2[key])
         x3 = {key: F.elu(x3[key]) for key in x_dict.keys()}
 
-        # pass trough linear layer
-        for key in self.omic_channels:
-            x3[key] = self.linears[key](x3[key])
-            x3[key] = F.elu(x3[key])
-            x3[key] = F.dropout(x3[key], p=0.2, training=self.training)
-
-        # stack the omic features into one tensor
-        # x_sample_features = torch.cat([x3[omic] for omic in self.omic_channels], dim=1)
         x_stack = []
         for omic in self.omic_channels:
             x_stack.append(x3[omic])
         x_sample_features = torch.stack(x_stack)
 
-        # x_sample_features = F.elu(self.lin1(x_sample_features))
-        # x_sample_features = F.dropout(x_sample_features, p=0.3, training=self.training)
-        # x_sample_features = F.elu(self.lin2(x_sample_features))
-        # x_sample_features = F.dropout(x_sample_features, p=0.5, training=self.training)
-
-        return self.classifier(x_sample_features)
+        return self.integrator(x_sample_features)
 
     def projection_layers_l1_norm(self):
         """
@@ -210,9 +181,19 @@ class BiRGAT(torch.nn.Module):
         """
         l1_norm = torch.tensor(0.0)
         for proj_layer in self.projections.values():
-            l1_norm += torch.norm(proj_layer.weight, p=1)
+            l1_norm += torch.norm(proj_layer.weight.to("cpu"), p=1)
 
         return l1_norm
+
+    def move_to_device(self, device):
+        for proj_layer in self.projections.values():
+            proj_layer.to(device)
+        for self_loop in self.self_loops1.values():
+            self_loop.to(device)
+        for self_loop in self.self_loops2.values():
+            self_loop.to(device)
+        for self_loop in self.self_loops3.values():
+            self_loop.to(device)
 
 
 class BipartiteRGAT(torch.nn.Module):
