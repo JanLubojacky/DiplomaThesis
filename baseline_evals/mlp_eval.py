@@ -7,7 +7,7 @@ import pytorch_lightning as L
 import torch
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score, f1_score
-from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 from sklearn.preprocessing import StandardScaler
 from torch.nn import Linear
 
@@ -217,7 +217,7 @@ def mlp_eval(
         )
         num_layers = 1  # trial.suggest_int("num_layers", 1, 3)
         params = {
-            "lr": 1e-3,  # trial.suggest_float("lr", 1e-4, 1e-1, log=True),
+            "lr": trial.suggest_float("lr", 1e-4, 1e-3, log=True),
             "l1_lambda": trial.suggest_float("l1_lambda", 1e-4, 5e-2, log=True),
             "l2_lambda": 5e-4,  # trial.suggest_float("l2_lambda", 1e-5, 1e-2, log=True),
             "batch_sz": trial.suggest_categorical("batch_sz", [32, 64, 128]),
@@ -229,16 +229,16 @@ def mlp_eval(
             ],
         }
 
-        params = {
-            "lr": 1e-3,  # trial.suggest_float("lr", 1e-4, 1e-1, log=True),
-            "l2_lambda": 5e-4,  # trial.suggest_float("l2_lambda", 1e-5, 1e-2, log=True),
-            "l1_lambda": 0.0015844617502738152,
-            "batch_sz": 64,
-            "proj_dim": 47,
-            "dropout": 0.4237635831392694,
-            "hidden_channels": [70],
-            "num_layers": 1,
-        }
+        # params = {
+        #     "lr": 1e-3,  # trial.suggest_float("lr", 1e-4, 1e-1, log=True),
+        #     "l2_lambda": 5e-4,  # trial.suggest_float("l2_lambda", 1e-5, 1e-2, log=True),
+        #     "l1_lambda": 0.0015844617502738152,
+        #     "batch_sz": 64,
+        #     "proj_dim": 47,
+        #     "dropout": 0.4237635831392694,
+        #     "hidden_channels": [70],
+        #     "num_layers": 1,
+        # }
 
         accs = np.zeros(n_evals)
         f1_macros = np.zeros(n_evals)
@@ -249,8 +249,15 @@ def mlp_eval(
         for i, (train_index, test_index) in enumerate(sss.split(X, y)):
             print(f"Eval {i+1} / {n_evals}")
             # split test_idx into val_idx and test_idx
-            val_idx = test_index[: len(test_index) // 2]
-            test_idx = test_index[len(test_index) // 2 :]
+            # val_idx = test_index[: len(test_index) // 2]
+            # test_idx = test_index[len(test_index) // 2 :]
+
+            val_idx, test_idx = train_test_split(
+                test_index,
+                test_size=0.5,
+                random_state=random_state,
+                stratify=y[test_index],
+            )
 
             X_train = X[train_index]
             X_val = X[val_idx]

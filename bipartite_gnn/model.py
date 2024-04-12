@@ -154,19 +154,23 @@ class BiRGAT(torch.nn.Module):
             x_dict[omic] = F.relu(self.projections[omic](x_dict[omic]))
 
         x1 = self.conv1(x_dict, edge_dict)
-        for key in self.omic_channels:
+        for key in x_dict.keys():  # self.omic_channels:
             x1[key] = x1[key] + self.self_loops1[key](x_dict[key]).repeat(1, self.heads)
         x1 = {key: F.elu(x1[key]) for key in x_dict.keys()}
 
         x2 = self.conv2(x1, edge_dict)
-        for key in self.omic_channels:  # x_dict.keys():
+        for key in x_dict.keys():  # self.omic_channels:  # x_dict.keys():
             x2[key] = x2[key] + self.self_loops2[key](x1[key]).repeat(1, self.heads)
         x2 = {key: F.elu(x2[key]) for key in x_dict.keys()}
 
         x3 = self.conv3(x2, edge_dict)
-        for key in self.omic_channels:
+        for key in x_dict.keys():  # self.omic_channels:
             x3[key] = x3[key] + self.self_loops3[key](x2[key])
         x3 = {key: F.elu(x3[key]) for key in x_dict.keys()}
+        x3 = {
+            key: F.dropout(x3[key], p=0.2, training=self.training)
+            for key in x_dict.keys()
+        }
 
         x_stack = []
         for omic in self.omic_channels:

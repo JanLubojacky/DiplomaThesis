@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import StandardScaler
 
-from baseline_evals.feature_selection import variance_filtering
+from baseline_evals.feature_selection import class_variational_selection
 
 
 def xgboost_eval(
@@ -96,10 +96,10 @@ def xgboost_eval(
 
             if n_features:
                 # apply feature selection
-                # select_mask, select_idx = class_variational_selection(
-                #     X_train, y_train, n_features
-                # )
-                select_mask = variance_filtering(X_train, n_features)
+                select_mask, select_idx = class_variational_selection(
+                    X_train, y_train, n_features
+                )
+                # select_mask = variance_filtering(X_train, n_features)
                 X_train = X_train[:, select_mask]
                 X_test = X_test[:, select_mask]
 
@@ -137,6 +137,10 @@ def xgboost_eval(
                 break
 
         mean_f1 = f1_scores.mean()
+
+        print("ACC:", accs)
+        print("F1M:", f1_macros)
+        print("F1W:", f1_scores)
 
         if mean_f1 > best_results["f1_weighted"]:
             best_results["acc"] = accs.mean()

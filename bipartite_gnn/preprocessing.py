@@ -1,92 +1,9 @@
 import io
 
-import numpy as np
 import polars as pl
 import requests
 import torch
 from tqdm import tqdm
-
-
-class FeatureSelection:
-    """
-    Accepts:
-        data (pl.dataframe) : polars dataframe with shape (n_features, n_samples)
-    """
-
-    def __init__(
-        self,
-        data: pl.DataFrame,
-        feature_names,
-        n_features,
-        var_threshold,
-        min_expression_value=None,
-    ):
-        self.data: pl.DataFrame = data
-        self.feature_names = feature_names
-        self.n_features = n_features
-        self.var_threshold = var_threshold
-        if min_expression_value:
-            self.min_expression_value = min_expression_value
-        else:
-            self.min_expression_value = n_features * 10
-
-    def var_exp_filtering(self, data):
-        """
-        filter out low variation and expression features
-        """
-        # compute variance of each row
-
-        # delete rows with variance below the threshold
-
-    def variatonal_selection(self):
-        """
-        order genes by variance and select the ones with the biggest variance
-        """
-
-        # TODO !!! this has to be redone, but mby keep the existing code
-
-        # return self.data[
-        #     self.data.var()  # calculates variances
-        #     .melt()  # create dataframe with column names in "variable" and variances in "value"
-        #     # sort by variance and select n_features columns with the largest variance
-        #     .sort(pl.col("value"), descending=True)[: self.n_features]["variable"]
-        # ]
-
-    def class_variational_selection(self, labels):
-        """
-        take the genes and compute their average expression for each class
-        then select n_features genes with the largest interclass variance
-
-        as per Li and Nabavi https://arxiv.org/pdf/2302.12838
-        """
-        classes = np.unique(labels)
-
-        # empty matrix genes x classes
-        genes = np.zeros((self.feature_names.shape, len(classes)))
-
-        # add labels to dataframe
-        self.data.with_columns(label=labels)
-
-        # for each label, compute the class mean for each gene
-        for i, c in enumerate(classes):
-            class_data = self.data.filter(pl.col("label") == c)
-            genes[:, i] = class_data.mean().to_numpy()
-
-        gene_vars = genes.var(axis=0)
-
-        # generate ordering of genes based on interclass variance
-        class_variance = np.argsort(gene_vars)
-
-        # and select the top n ones
-        selected_genes = class_variance[: self.n_features]
-
-        return selected_genes
-
-    def mogonet_selection(self):
-        """
-        selects features using ANOVA and PCA as described in https://doi.org/10.1038/s41467-021-23774-w
-        """
-        ...
 
 
 def ids_to_gene_names(ids, kind):
@@ -181,22 +98,19 @@ def get_mirna_gene_interactions(
     return mirna_mrna_A
 
 
-def get_protein_protein_interactions(gene_names):
-    """
-    Retrieve interactions between proteins from string db
-    """
-
-    # convert ensg to ensp
-
-    # get protein-protein interactions between ensps
-
-    # map back to ensgs and gene names
-
-    #
-
-
 def pp_interactions(gene_list_1, gene_list_2, db_file="string_db/ppi.csv"):
-    """ """
+    """
+    Given two lists of gene names, return a matrix of interactions between them based on the interactions
+    of the proteins they encode
+
+    Args:
+        gene_list_1 (list) : list of gene names
+        gene_list_2 (list) : list of gene names
+        db_file (str) : path to the database with ppi interactions, it is expected to have
+        columns gene1 and gene2 where each row is a gene-gene interaction
+    Returns:
+        A (torch.Tensor), shape (len(gene_list1), len(gene_list_2)) : matrix of interactions between genes
+    """
 
     if not isinstance(gene_list_1, list):
         gene_list_1 = list(gene_list_1)
@@ -215,13 +129,28 @@ def pp_interactions(gene_list_1, gene_list_2, db_file="string_db/ppi.csv"):
     g2_idx = ppi.columns.index("gene2")
 
     for row in ppi.iter_rows():
-        A[gene_list_1.index(row[g1_idx]), gene_list_2.index(row[g2_idx])] = 1
+        try:
+            A[gene_list_1.index(row[g1_idx]), gene_list_2.index(row[g2_idx])] = 1
+        except ValueError:
+            try:
+                A[gene_list_1.index(row[g2_idx]), gene_list_2.index(row[g1_idx])] = 1
+            except ValueError:
+                pass
 
     return A
 
 
 def gg_interactions(gene_list_1, gene_list_2, check_all_aliases=False):
-    """ """
+    """
+    Given two lists of gene names, return a matrix of interactions between them
+
+    Args:
+        gene_list_1 (list) : list of gene names
+        gene_list_2 (list) : list of gene names
+        check_all_aliases (bool) : if True, check all aliases for each gene in the database
+    Returns:
+        interactions_A (torch.Tensor), shape (len(gene_list1), len(gene_list_2)) : matrix of interactions between genes
+    """
 
     interactions_A = torch.zeros((len(gene_list_1), len(gene_list_2)))
 
@@ -244,9 +173,17 @@ def gg_interactions(gene_list_1, gene_list_2, check_all_aliases=False):
         )
 
         for row in interaction_data.iter_rows():
-            interactions_A[
-                gene_list_1.index(row[a_idx]), gene_list_2.index(row[b_idx])
-            ] = 1
+            try:
+                interactions_A[
+                    gene_list_1.index(row[a_idx]), gene_list_2.index(row[b_idx])
+                ] = 1
+            except ValueError:
+                try:
+                    interactions_A[
+                        gene_list_1.index(row[b_idx]), gene_list_2.index(row[a_idx])
+                    ] = 1
+                except ValueError:
+                    pass
 
         return interactions_A
 
@@ -265,28 +202,13 @@ def gg_interactions(gene_list_1, gene_list_2, check_all_aliases=False):
         if alias_b:
             names_b += alias_b.split("|")
 
-        # print(names_a, names_b)
-
-        # for i, gene in enumerate(gene_list):
-        #     if gene in names_a:
-        #         for j, gene_ in enumerate(gene_list):
-        #             if gene_ in names_b:
-        #                 # print(f"{gene} interacts with {gene_}")
-        #                 interactions_A[i, j] = 1
-        #                 break
-
-        # found = False
         for gene_a in names_a:
-            # if found:
-            #     break
             if gene_a in gene_list:
                 for gene_b in names_b:
                     if gene_b in gene_list:
                         interactions_A[
                             gene_list.index(gene_a), gene_list.index(gene_b)
                         ] = 1
-                        # found = True
-                        # break
 
     return interactions_A
 

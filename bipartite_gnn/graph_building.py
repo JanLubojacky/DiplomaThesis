@@ -1,10 +1,8 @@
 import warnings
 
 import numpy as np
-import polars as pl
 import statsmodels.api as sm
 import torch
-from tqdm import tqdm
 
 
 def cosine_similarity_matrix(matrix, th=0.9):
@@ -194,47 +192,3 @@ def create_diff_exp_connections_nbnom(X, train_mask, var_multiplier=1.0):
     )
 
     return A  # , isolated_nodes_mask
-
-
-def gg_interactions(gene_list, check_all_aliases=False):
-    """ """
-
-    interactions_A = torch.zeros((len(gene_list), len(gene_list)))
-
-    interaction_data = pl.read_csv("biogrid_preprocessed_data.csv")
-
-    interaction_data = interaction_data.filter(
-        pl.col("Official Symbol Interactor A").is_in(gene_list)
-        & pl.col("Official Symbol Interactor B").is_in(gene_list)
-    )
-
-    a_idx = interaction_data.columns.index("Official Symbol Interactor A")
-    b_idx = interaction_data.columns.index("Official Symbol Interactor B")
-
-    for row in interaction_data.iterrows():
-        ...
-
-    # iterate over each row in the dataframe
-    for row in tqdm(interaction_data.iter_rows()):
-        name_a = row[0]
-        name_b = row[1]
-        alias_a = row[2]
-        alias_b = row[3]
-
-        names_a = [name_a]
-        names_b = [name_b]
-
-        if alias_a:
-            names_a += alias_a.split("|")
-        if alias_b:
-            names_b += alias_b.split("|")
-
-        for gene_a in names_a:
-            if gene_a in gene_list:
-                for gene_b in names_b:
-                    if gene_b in gene_list:
-                        interactions_A[
-                            gene_list.index(gene_a), gene_list.index(gene_b)
-                        ] = 1
-
-    return interactions_A

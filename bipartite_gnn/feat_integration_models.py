@@ -11,7 +11,7 @@ class LinearIntegration(torch.nn.Module):
         predictions for each class
     """
 
-    def __init__(self, n_views, view_dim, n_classes, hidden_dim, dropout=0.5):
+    def __init__(self, n_views, view_dim, n_classes, hidden_dim, dropout=0.2):
         super().__init__()
         self.lin1 = pyg.nn.Linear(-1, hidden_dim, weight_initializer="kaiming_uniform")
         self.lin2 = pyg.nn.Linear(
