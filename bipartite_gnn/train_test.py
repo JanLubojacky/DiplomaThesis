@@ -30,17 +30,18 @@ class GNNTrainer:
             out[data.train_mask],
             data.y[data.train_mask],
         )
-        val_loss = self.loss_fn(out[data.val_mask], data.y[data.val_mask])
 
         # L1 regularization for the projection layers
         if self.model.projections is not None and self.params["l1_lambda"] > 0.0:
-            loss += self.model.projection_layers_l1_norm() * self.params["l1_lambda"]
+            l1_loss = self.model.projection_layers_l1_norm()
+            loss += l1_loss * self.params["l1_lambda"]
 
         loss.backward()
         self.optimizer.step()
 
         # scheduler step
         if self.scheduler is not None:
+            val_loss = self.loss_fn(out[data.val_mask], data.y[data.val_mask])
             self.scheduler.step(val_loss)
 
         return loss, out
