@@ -6,7 +6,7 @@ import optuna.logging
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.feature_selection import RFE
 from sklearn.metrics import accuracy_score, f1_score
-from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC, LinearSVC
 
@@ -62,9 +62,10 @@ def svm_eval(
 
         print(f"Trial {trial.number + 1} / {n_trials}")
 
-        sss = StratifiedShuffleSplit(
-            n_splits=n_evals, test_size=test_size, random_state=random_state
-        )
+        # sss = StratifiedShuffleSplit(
+        #     n_splits=n_evals, test_size=test_size, random_state=random_state
+        # )
+        skf = StratifiedKFold(n_splits=n_evals)
 
         if mode == "linear":
             params = {
@@ -91,7 +92,7 @@ def svm_eval(
         f1_scores = np.zeros(n_evals)
 
         # 10 times repeated holdout testing with different random splits
-        for i, (train_index, test_index) in enumerate(sss.split(X, y)):
+        for i, (train_index, test_index) in enumerate(skf.split(X, y)):
             # stratified split
             X_train = X[train_index]
             y_train = y[train_index]
@@ -148,6 +149,9 @@ def svm_eval(
             best_results["f1_macro_std"] = f1_macros.std()
             best_results["f1_weighted"] = f1_scores.mean()
             best_results["f1_weighted_std"] = f1_scores.std()
+            print(
+                f"| SVM | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
+            )
 
         return mean_f1
 

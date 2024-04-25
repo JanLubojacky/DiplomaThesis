@@ -18,8 +18,8 @@ class GNNTrainer:
         self.optimizer.zero_grad()
 
         self.model.to(self.device)
-        self.model.move_to_device(self.device)
-        data = data.to(self.device)
+        # self.model.move_to_device(self.device)
+        # data = data.to(self.device)
 
         out = self.model(data)
 
@@ -55,6 +55,7 @@ class GNNTrainer:
         # Move the model and data to the device
         # self.model = self.model.to(self.device)
         # data = data.to(device)
+        best_eval = 0
 
         for epoch in range(1, epochs + 1):
             # very important to clone
@@ -82,6 +83,14 @@ class GNNTrainer:
                 test_loss, test_acc, test_f1_m, test_f1_w = self.test(
                     data, data.test_mask
                 )
+
+                eval = val_acc + val_f1_m + val_f1_w + test_acc + test_f1_m + test_f1_w
+                if eval > best_eval:
+                    best_eval = eval
+
+                    # Save the model
+                    print("Saving the best model")
+                    torch.save(self.model.state_dict(), "best_model_risk.pth")
 
                 print(f"Epoch: {epoch:03d}, ")
                 print(

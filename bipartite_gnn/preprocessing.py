@@ -1,9 +1,12 @@
 import io
-
+import numpy as np
 import polars as pl
 import requests
 import torch
 from tqdm import tqdm
+import mrmr
+
+from baseline_evals.feature_selection import variance_filtering
 
 
 def ids_to_gene_names(ids, kind):
@@ -62,6 +65,53 @@ def ids_to_gene_names(ids, kind):
         raise Exception(f"Error fetching gene names: {response.status_code}")
 
 
+def get_interactions(
+    interactants1,
+    interactants2,
+    interactant1_colname,
+    interactant2_colname,
+    interact_df,
+):
+    """
+    Given two lists of interactants, return a matrix of interactions between them based on the interactions
+    Args:
+        interactant1 (list) : list of interactant names
+        interactant2 (list) : list of interactant names
+        intaractant1_colname (str) : column name for interactant1
+        intaractant2_colname (str) : column name for interactant2
+        file (str) : path to the database with interactions, it is expected to have
+        columns intaractant1_colname and intaractant2_colname where each row is an interaction
+    Returns:
+        A (torch.Tensor), shape (len(interactant1), len(interactant2)) : matrix of interactions between interactants
+    """
+
+    if not isinstance(interactants1, list):
+        interactants1 = list(interactants1)
+    if not isinstance(interactants2, list):
+        interactants2 = list(interactants2)
+
+    interact_df = interact_df.filter(
+        pl.col(interactant1_colname).is_in(interactants1)
+        & pl.col(interactant2_colname).is_in(interactants2)
+    )
+
+    A = torch.zeros((len(interactants1), len(interactants2)))
+
+    interactant1_idx = interact_df.columns.index(interactant1_colname)
+    interactant2_idx = interact_df.columns.index(interactant2_colname)
+
+    for row in interact_df.iter_rows():
+        A[
+            interactants1.index(row[interactant1_idx]),
+            interactants2.index(row[interactant2_idx]),
+        ] = 1
+
+    if A.sum() == 0:
+        print("WARNING: No interactions found, are all inputs correct?")
+
+    return A
+
+
 def get_mirna_gene_interactions(
     mirna_names, mrna_names, mirna_mrna_db="mirna_mrna_interactions_DB.csv"
 ):
@@ -94,6 +144,9 @@ def get_mirna_gene_interactions(
         mirna_mrna_A[
             mirna_names.index(row[mirna_idx]), mrna_names.index(row[gene_idx])
         ] = 1
+
+    if mirna_mrna_A.sum() == 0:
+        print("WARNING: No interactions found, are all inputs correct?")
 
     return mirna_mrna_A
 
@@ -136,6 +189,9 @@ def pp_interactions(gene_list_1, gene_list_2, db_file="string_db/ppi.csv"):
                 A[gene_list_1.index(row[g2_idx]), gene_list_2.index(row[g1_idx])] = 1
             except ValueError:
                 pass
+
+    if A.sum() == 0:
+        print("WARNING: No interactions found, are all inputs correct?")
 
     return A
 
@@ -210,6 +266,9 @@ def gg_interactions(gene_list_1, gene_list_2, check_all_aliases=False):
                             gene_list.index(gene_a), gene_list.index(gene_b)
                         ] = 1
 
+    if interactions_A.sum() == 0:
+        print("WARNING: No interactions found, are all inputs correct?")
+
     return interactions_A
 
 
@@ -248,6 +307,41 @@ def get_gene_gene_interactions(gene_list):
         )
 
     return i_df
+
+
+def mrmr_selection(
+    X_df, y, train_mask, n_features, n_preselected_features, feature_col_name
+):
+    """
+    Given an polars DataFrame X of shape (n_features, n_samples) and an array y of shape (n_samples, )
+    Select the top n_features using mrmr feature selection
+    """
+
+    feature_names = X_df[feature_col_name].to_numpy()
+
+    # assuming the first column is the feature names
+    X = X_df[:, 1:].to_numpy().T
+
+    if n_preselected_features is not None:
+        select_mask = variance_filtering(X, n_features=n_preselected_features)
+    else:
+        select_mask = np.ones(X.shape[1], dtype=bool)
+
+    # preselect features & training samples
+    X_train = X[train_mask][:, select_mask]
+
+    # createa a dataframe with the selected features
+    train_df = pl.DataFrame(X_train)
+    train_df.columns = np.array(feature_names)[select_mask].tolist()
+    train_df = train_df.with_columns(target=pl.Series(y[train_mask]))
+
+    selected_features = mrmr.polars.mrmr_classif(
+        train_df, target_column="target", K=n_features
+    )
+
+    X_df_select = X_df.filter(pl.col(feature_col_name).is_in(selected_features))
+
+    return X_df_select
 
 
 def get_thresholded_expressions(expressions, labels):

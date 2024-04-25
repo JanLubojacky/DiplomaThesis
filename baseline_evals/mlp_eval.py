@@ -215,17 +215,18 @@ def mlp_eval(
         sss = StratifiedShuffleSplit(
             n_splits=n_evals, test_size=val_test_size, random_state=random_state
         )
-        num_layers = 1  # trial.suggest_int("num_layers", 1, 3)
+        num_layers = trial.suggest_int("num_layers", 1, 3)
         params = {
-            "lr": trial.suggest_float("lr", 1e-4, 1e-3, log=True),
+            "lr": trial.suggest_float("lr", 1e-5, 1e-3, log=True),
             "l1_lambda": trial.suggest_float("l1_lambda", 1e-4, 5e-2, log=True),
-            "l2_lambda": 5e-4,  # trial.suggest_float("l2_lambda", 1e-5, 1e-2, log=True),
+            "l2_lambda": trial.suggest_float("l2_lambda", 1e-5, 1e-3, log=True),
             "batch_sz": trial.suggest_categorical("batch_sz", [32, 64, 128]),
-            "proj_dim": trial.suggest_int("proj_dim", 32, 128),
+            "proj_dim": trial.suggest_int("proj_dim", 32, 512),
             "dropout": trial.suggest_float("dropout", 0.05, 0.8),
             "num_layers": num_layers,
             "hidden_channels": [
-                trial.suggest_int("hidden_channels", 32, 256) for _ in range(num_layers)
+                trial.suggest_int(f"hidden_channels_{i}", 32, 256)
+                for i in range(num_layers)
             ],
         }
 

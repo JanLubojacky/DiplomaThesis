@@ -2,6 +2,8 @@ import torch
 import torch.nn.functional as F
 import torch_geometric as pyg
 
+import torch.nn as nn
+
 
 class LinearIntegration(torch.nn.Module):
     """
@@ -14,9 +16,7 @@ class LinearIntegration(torch.nn.Module):
     def __init__(self, n_views, view_dim, n_classes, hidden_dim, dropout=0.2):
         super().__init__()
         self.lin1 = pyg.nn.Linear(-1, hidden_dim, weight_initializer="kaiming_uniform")
-        self.lin2 = pyg.nn.Linear(
-            hidden_dim, n_classes, weight_initializer="kaiming_uniform"
-        )
+        self.lin2 = pyg.nn.Linear(-1, n_classes, weight_initializer="kaiming_uniform")
         self.dropout = dropout
 
     def forward(self, x):
@@ -30,56 +30,61 @@ class LinearIntegration(torch.nn.Module):
         x = xt.reshape(xt.shape[0], -1)
 
         x = self.lin1(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
+        x = F.elu(x)
+        # x = F.dropout(x, p=self.dropout, training=self.training)
 
         return self.lin2(x)
 
 
-class AttentionIntegration(torch.nn.Module):
+class AttentionIntegrator(torch.nn.Module):
     """
-    Args
-        x: torch.Tensor, where x is (n_omics, n_samples, n_features)
-    Returns
-        predictions for each class
+    Integrates multi-omics data using a self-attention mechanism.
     """
 
-    def __init__(self, n_views, view_dim, n_classes):
-        super(AttentionIntegration, self).__init__()
+    def __init__(self, n_views, view_dim, n_classes, hidden_dim, dropout=0.2):
+        super().__init__()
         self.n_views = n_views
         self.view_dim = view_dim
         self.n_classes = n_classes
+        self.hidden_dim = hidden_dim
+        self.dropout = dropout
 
-        # Attention mechanism
-        self.attention = torch.nn.Sequential(
-            pyg.nn.Linear(view_dim, view_dim // 2),
-            torch.nn.ReLU(),
-            pyg.nn.Linear(view_dim // 2, 1),
-        )
+        # Linear layers for the self-attention mechanism
+        self.query = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
+        self.key = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
+        self.value = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
 
-        # Classifier
-        self.classifier = pyg.nn.Linear(view_dim * n_views, n_classes)
+        # Linear layers for the final transformation
+        self.lin1 = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
+        self.lin2 = pyg.nn.Linear(-1, n_classes, weight_initializer="glorot")
+
+        # Dropout layer
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        """
-        where x is (n_omics, n_samples, n_features)
-        """
-        # Calculate attention weights for each omic view
-        attention_weights = torch.softmax(self.attention(x), dim=0)
+        # (n_omics, n_samples, n_features) -> (n_samples, n_omics, n_features)
+        xt = torch.transpose(x, 0, 1)
 
-        # Apply attention weights to each omic view
-        weighted_views = x * attention_weights
+        # query, key, and value matrices
+        q = self.query(xt)
+        k = self.key(xt)
+        v = self.value(xt)
 
-        # Integrate information from all views
-        integrated_views = torch.sum(weighted_views, dim=0)
+        # Compute the scaled dot-product attention
+        qkt = torch.matmul(q, k.transpose(1, 2))
+        qkt = F.softmax(qkt, dim=-1) / (self.hidden_dim**0.5)
 
-        # Flatten the integrated views
-        integrated_views_flat = integrated_views.view(integrated_views.size(0), -1)
+        x = torch.matmul(qkt, v)
 
-        # Pass through the classifier
-        predictions = self.classifier(integrated_views_flat)
+        # x = self.lin1(x)
+        # x = F.elu(x)
 
-        return F.relu(predictions)
+        # (n_samples, n_omics, n_features) -> (n_samples, n_features*n_omics)
+        x = x.reshape(x.shape[0], -1)
+
+        x = self.lin2(x)
+
+        return x
 
 
 def reshape_tensor(tensor):
@@ -106,10 +111,10 @@ def reshape_tensor(tensor):
     return tensor.view(*new_shape)
 
 
-def construct_cross_feature_discovery_tensor(x, flatten_output=True):
+def construct_cross_feature_discovery_tensor_single(x, flatten_output=True):
     """
     Args
-        x: torch.Tensor, where x is (n_omics, n_samples, n_features)
+        x: torch.Tensor, where x is (n_omics, n_features)
     """
 
     # Initialize the output tensor with the first 2D tensor
@@ -127,6 +132,38 @@ def construct_cross_feature_discovery_tensor(x, flatten_output=True):
     return reshape_tensor(output_tensor)
 
 
+def construct_cross_feature_discovery_tensor(x, flatten_output=True):
+    """
+    Constructs a tensor representing the cross-feature interactions between multiple samples.
+
+    Args:
+        x: torch.Tensor, where x is (n_samples, n_omics, n_features)
+        flatten_output: bool, whether to flatten the output tensor (default: True)
+
+    Returns:
+        torch.Tensor, the cross-feature discovery tensor
+    """
+
+    # (n_omics, n_samples, n_features) -> (n_samples, n_omics, n_features)
+    x = torch.transpose(x, 0, 1)
+
+    print(x)
+
+    # Get the number of samples, omics, and features
+    n_samples, n_omics, n_features = x.shape
+
+    # Initialize a list to store the output tensors for each sample
+    output_tensors = torch.zeros(n_samples, n_features**n_omics)
+
+    # Iterate over each sample
+    for sample_idx in range(n_samples):
+        output_tensors[sample_idx] = construct_cross_feature_discovery_tensor_single(
+            x[sample_idx]
+        )
+
+    return output_tensors
+
+
 class VCDN(torch.nn.Module):
     """
     Args
@@ -135,8 +172,8 @@ class VCDN(torch.nn.Module):
         predictions for each class
     """
 
-    def __init__(self, n_views, view_dim, n_classes, convolutional=False):
-        super(VCDN, self).__init__()
+    def __init__(self, n_views, view_dim, n_classes, hidden_dim, convolutional=False):
+        super().__init__()
         self.convolutional = convolutional
 
         if convolutional:
@@ -147,9 +184,12 @@ class VCDN(torch.nn.Module):
                 n_views, n_classes, kernel_size=(1, view_dim)
             )
         else:
+            self.lin1 = pyg.nn.Linear(
+                -1, hidden_dim, weight_initializer="kaiming_uniform"
+            )
             # use a single linear layer to classify the samples
             self.classifier = pyg.nn.Linear(
-                -1, n_classes, weight_initializer="kaiming_uniform"
+                hidden_dim, n_classes, weight_initializer="kaiming_uniform"
             )
 
     def forward(self, x):
@@ -161,4 +201,7 @@ class VCDN(torch.nn.Module):
         else:
             cfdt = construct_cross_feature_discovery_tensor(x)
 
-        return F.relu(self.classifier(cfdt))
+        x = self.lin1(cfdt)
+        x = F.elu(x)
+
+        return self.classifier(x)

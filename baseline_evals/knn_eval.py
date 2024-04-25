@@ -2,11 +2,13 @@ import numpy as np
 import optuna
 import optuna.logging
 from sklearn.metrics import accuracy_score, f1_score
+
+# from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 
-from baseline_evals.feature_selection import variance_filtering
+from baseline_evals.feature_selection import class_variational_selection
 
 # Before creating the study:
 optuna.logging.set_verbosity(optuna.logging.ERROR)
@@ -15,7 +17,7 @@ optuna.logging.set_verbosity(optuna.logging.ERROR)
 def knn_eval(
     X: np.ndarray,
     y: np.ndarray,
-    n_evals: int = 20,
+    n_evals: int = 10,
     n_trials: int = 20,
     nn_range: tuple = (1, 30),
     test_size: float = 0.3,
@@ -53,6 +55,7 @@ def knn_eval(
         sss = StratifiedShuffleSplit(
             n_splits=n_evals, test_size=test_size, random_state=random_state
         )
+        # skf = StratifiedKFold(n_splits=n_evals)
 
         knn = KNeighborsClassifier(
             n_neighbors=trial.suggest_int("n_neighbors", nn_range[0], nn_range[1]),
@@ -73,10 +76,10 @@ def knn_eval(
 
             if n_features:
                 # apply feature selection
-                # select_mask, select_idx = class_variational_selection(
-                #     X_train, y_train, n_features
-                # )
-                select_mask = variance_filtering(X_train, n_features)
+                select_mask, select_idx = class_variational_selection(
+                    X_train, y_train, n_features
+                )
+                # select_mask = variance_filtering(X_train, n_features)
                 X_train = X_train[:, select_mask]
                 X_test = X_test[:, select_mask]
 

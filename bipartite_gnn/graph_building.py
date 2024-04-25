@@ -5,7 +5,7 @@ import statsmodels.api as sm
 import torch
 
 
-def cosine_similarity_matrix(matrix, th=0.9):
+def cosine_similarity_matrix(matrix):
     """
     Given a matrix of (n_samples, n_features) compute the cosine similarities, between the samples
     """
@@ -24,12 +24,13 @@ def cosine_similarity_matrix(matrix, th=0.9):
     return cosine_similarities
 
 
-def threshold_matrix(cosine_similarities, th=0.9):
+def threshold_matrix(cosine_similarities, th=0.9, verbose=True):
     A = (cosine_similarities > th).float()  # - torch.eye(cosine_similarities.shape[0])
 
-    print(
-        f"Isolated samples = {(A.sum(dim=1) == 0).sum()}, avg degree = {A.sum(dim=1).mean()}"
-    )
+    if verbose:
+        print(
+            f"Isolated samples = {(A.sum(dim=1) == 0).sum()}, avg degree = {A.sum(dim=1).mean()}"
+        )
 
     return A
 
@@ -70,7 +71,7 @@ def dense_to_attributes(adj_mat):
     return adj_mat[adj_mat != 0].view(-1, 1)
 
 
-def create_diff_exp_connections_norm(X, train_mask, multiplier=1.0):
+def create_diff_exp_connections_norm(X, train_mask=None, multiplier=1.0):
     """
     This function identifies and categorizes gene expression levels as
     under-expressed (-1), over-expressed (1), or baseline (0) based on standard
@@ -91,10 +92,10 @@ def create_diff_exp_connections_norm(X, train_mask, multiplier=1.0):
     """
     # fit the differntial expression model
     # based on the training mask
-    mean_exps = X[train_mask].mean(dim=0)
-    exps_std = X[train_mask].std(dim=0)
-    # mean_exps = X.mean(dim=0)
-    # exps_std = X.std(dim=0)
+    # mean_exps = X[train_mask].mean(dim=0)
+    # exps_std = X[train_mask].std(dim=0)
+    mean_exps = X.mean(dim=0)
+    exps_std = X.std(dim=0)
 
     lb_exps = mean_exps - exps_std * multiplier
     ub_exps = mean_exps + exps_std * multiplier

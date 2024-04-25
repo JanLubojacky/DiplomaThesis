@@ -3,7 +3,7 @@ import optuna
 import optuna.logging
 import xgboost as xgb
 from sklearn.metrics import accuracy_score, f1_score
-from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 from sklearn.preprocessing import StandardScaler
 
 from baseline_evals.feature_selection import class_variational_selection
@@ -13,8 +13,8 @@ def xgboost_eval(
     X: np.ndarray,
     y: np.ndarray,
     n_evals: int = 5,
-    n_trials: int = 100,
-    test_size: float = 0.3,
+    n_trials: int = 50,
+    test_size: float = 0.2,
     random_state: int = 3,
     n_features: int | None = 5000,
     norm_features: bool = True,
@@ -51,6 +51,7 @@ def xgboost_eval(
         sss = StratifiedShuffleSplit(
             n_splits=n_evals, test_size=test_size, random_state=random_state
         )
+        # skf = StratifiedKFold(n_splits=n_evals)
 
         params = {
             "verbosity": 1,
@@ -91,8 +92,13 @@ def xgboost_eval(
 
         # Repeated stratified holdout testing
         for i, (train_index, test_index) in enumerate(sss.split(X, y)):
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
+            # randomly split test index into two halves
+            val_idx, test_idx = train_test_split(
+                test_index, test_size=0.5, random_state=random_state
+            )
+
+            X_train, X_val, X_test = X[train_index], X[val_idx], X[test_index]
+            y_train, y_val, y_test = y[train_index], y[val_idx], y[test_index]
 
             if n_features:
                 # apply feature selection
@@ -101,11 +107,13 @@ def xgboost_eval(
                 )
                 # select_mask = variance_filtering(X_train, n_features)
                 X_train = X_train[:, select_mask]
+                X_val = X_val[:, select_mask]
                 X_test = X_test[:, select_mask]
 
             if norm_features:
                 std_scale = StandardScaler().fit(X_train)
                 X_train = std_scale.transform(X_train)
+                X_val = std_scale.transform(X_val)
                 X_test = std_scale.transform(X_test)
 
             xgbst = xgb.train(
@@ -113,7 +121,7 @@ def xgboost_eval(
                 dtrain=xgb.DMatrix(X_train, label=y_train),
                 evals=[
                     (
-                        xgb.DMatrix(X_test, label=y_test),
+                        xgb.DMatrix(X_val, label=y_val),
                         "validation",
                     )
                 ],
