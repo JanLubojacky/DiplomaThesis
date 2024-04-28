@@ -34,13 +34,17 @@ class BiRGAT(torch.nn.Module):
             omic: pyg.nn.Linear(input_dim, proj_dim, weight_initializer="glorot")
             for omic, input_dim in zip(omic_channels, input_dims)
         }
+
+        self.lin1 = pyg.nn.Linear(
+            proj_dim, hidden_channels[0], weight_initializer="glorot"
+        )
         # self.projections = None
 
         self.conv1 = pyg.nn.HeteroConv(
             {
                 relation: pyg.nn.GATv2Conv(
-                    proj_dim,
                     hidden_channels[0],
+                    hidden_channels[1],
                     heads=heads,
                     concat=True,
                     add_self_loops=False,
@@ -52,7 +56,7 @@ class BiRGAT(torch.nn.Module):
         )
         self.self_loops1 = {
             name: pyg.nn.Linear(
-                proj_dim, hidden_channels[0], weight_initializer="glorot"
+                hidden_channels[0], hidden_channels[1], weight_initializer="glorot"
             )
             for name in all_names
         }
@@ -60,8 +64,8 @@ class BiRGAT(torch.nn.Module):
         self.conv2 = pyg.nn.HeteroConv(
             {
                 relation: pyg.nn.GATv2Conv(
-                    hidden_channels[0] * heads,
-                    hidden_channels[1],
+                    hidden_channels[1] * heads,
+                    hidden_channels[2],
                     heads=heads,
                     concat=True,
                     add_self_loops=False,
@@ -73,8 +77,8 @@ class BiRGAT(torch.nn.Module):
         )
         self.self_loops2 = {
             name: pyg.nn.Linear(
-                hidden_channels[0] * heads,
-                hidden_channels[1],
+                hidden_channels[2] * heads,
+                hidden_channels[3],
                 weight_initializer="glorot",
             )
             for name in all_names
@@ -83,8 +87,8 @@ class BiRGAT(torch.nn.Module):
         self.conv3 = pyg.nn.HeteroConv(
             {
                 relation: pyg.nn.GATv2Conv(
-                    hidden_channels[1] * heads,
-                    hidden_channels[2],
+                    hidden_channels[3] * heads,
+                    hidden_channels[4],
                     heads=heads,
                     concat=False,
                     add_self_loops=False,
@@ -96,17 +100,8 @@ class BiRGAT(torch.nn.Module):
         )
         self.self_loops3 = {
             name: pyg.nn.Linear(
-                hidden_channels[1] * heads,
-                hidden_channels[2],
-                weight_initializer="glorot",
-            )
-            for name in all_names
-        }
-
-        self.skip_connection = {
-            name: pyg.nn.Linear(
-                proj_dim,
-                hidden_channels[2],
+                hidden_channels[3] * heads,
+                hidden_channels[4],
                 weight_initializer="glorot",
             )
             for name in all_names
@@ -120,9 +115,9 @@ class BiRGAT(torch.nn.Module):
         # )
         self.integrator = AttentionIntegrator(
             n_views=len(omic_channels),
-            view_dim=hidden_channels[2],
+            view_dim=hidden_channels[4],
             n_classes=num_classes,
-            hidden_dim=hidden_channels[3],
+            hidden_dim=hidden_channels[5],
         )
         # self.integrator = VCDN(
         #     n_views=len(omic_channels),
@@ -147,9 +142,9 @@ class BiRGAT(torch.nn.Module):
 
         for omic in self.omic_channels:
             x_dict[omic] = F.elu(self.projections[omic](x_dict[omic]))
-            x_dict[omic] = F.dropout(
-                x_dict[omic], p=self.dropout, training=self.training
-            )
+            # x_dict[omic] = F.dropout(
+            #     x_dict[omic], p=self.dropout, training=self.training
+            # )
 
             # print(x_dict[omic].shape)
         #

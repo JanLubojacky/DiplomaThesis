@@ -336,6 +336,7 @@ class BiRGAT(torch.nn.Module):
             view_dim=hidden_channels[2],
             n_classes=num_classes,
             hidden_dim=hidden_channels[3],
+            one_lin_layer=False,
         )
         # self.integrator = VCDN(
         #     n_views=len(omic_channels),
@@ -358,13 +359,13 @@ class BiRGAT(torch.nn.Module):
         x_dict = data.x_dict
         edge_dict = data.edge_index_dict
 
-        for omic in self.omic_channels:
-            x_dict[omic] = F.elu(self.projections[omic](x_dict[omic]))
-            x_dict[omic] = F.dropout(
-                x_dict[omic], p=self.dropout, training=self.training
-            )
+        # for omic in self.omic_channels:
+        #     x_dict[omic] = F.elu(self.projections[omic](x_dict[omic]))
+        #     x_dict[omic] = F.dropout(
+        #         x_dict[omic], p=self.dropout, training=self.training
+        #     )
 
-            # print(x_dict[omic].shape)
+        # print(x_dict[omic].shape)
         #
         # print(x_dict)
         # print(edge_dict)
@@ -375,7 +376,7 @@ class BiRGAT(torch.nn.Module):
         x1 = {key: F.elu(x1[key]) for key in x_dict.keys()}
 
         x2 = self.conv2(x1, edge_dict)
-        for key in self.omic_channels:  # x_dict.keys():
+        for key in self.omic_channels:
             x2[key] = x2[key] + self.self_loops2[key](x1[key]).repeat(1, self.heads)
         x2 = {key: F.elu(x2[key]) for key in x_dict.keys()}
 
@@ -397,7 +398,7 @@ class BiRGAT(torch.nn.Module):
 
         x_stack = []
         for omic in self.omic_channels:
-            x_stack.append(x2[omic])
+            x_stack.append(x3[omic])
         x_sample_features = torch.stack(x_stack)
 
         return self.integrator(x_sample_features)
@@ -489,9 +490,7 @@ class BipartiteRGAT(torch.nn.Module):
         self.self_loops1 = torch.nn.ModuleList()
         for i in range(len(input_sizes)):
             self.self_loops1.append(
-                pyg.nn.Linear(
-                    proj_dim, hidden_channels[0], weight_initializer="kaiming_uniform"
-                )
+                pyg.nn.Linear(proj_dim, hidden_channels[0], weight_initializer="glorot")
             )
 
         self.rgat_conv2 = pyg.nn.RGATConv(
@@ -508,7 +507,7 @@ class BipartiteRGAT(torch.nn.Module):
                 pyg.nn.Linear(
                     hidden_channels[0] * num_heads,
                     hidden_channels[1],
-                    weight_initializer="kaiming_uniform",
+                    weight_initializer="glorot",
                 )
             )
 
@@ -526,7 +525,7 @@ class BipartiteRGAT(torch.nn.Module):
                 pyg.nn.Linear(
                     hidden_channels[0] * num_heads,
                     hidden_channels[1],
-                    weight_initializer="kaiming_uniform",
+                    weight_initializer="glorot",
                 )
             )
 

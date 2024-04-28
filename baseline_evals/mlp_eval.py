@@ -5,13 +5,15 @@ import numpy as np
 import optuna
 import pytorch_lightning as L
 import torch
+from torch.nn import ModuleDict
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 from sklearn.preprocessing import StandardScaler
-from torch.nn import Linear
+from torch_geometric.nn import Linear
 
 from baseline_evals.feature_selection import class_variational_selection
+from bipartite_gnn.feat_integration_models import AttentionIntegrator
 
 log = logging.getLogger("pytorch_lightning")
 log.propagate = False
@@ -47,7 +49,9 @@ class MLPDataset(torch.utils.data.Dataset):
 
 
 class MLP(torch.nn.Module):
-    def __init__(self, input_sz, num_classes, proj_dim, hidden_channels, dropout):
+    def __init__(
+        self, input_sz, num_classes, proj_dim, hidden_channels, n_layers, dropout
+    ):
         super().__init__()
         torch.manual_seed(12345)
         if proj_dim is not None:
@@ -56,45 +60,79 @@ class MLP(torch.nn.Module):
         self.dropout = dropout
         self.hidden_layers = torch.nn.ModuleList(
             [
-                Linear(hidden_channels[i], hidden_channels[i + 1])
-                for i in range(len(hidden_channels) - 1)
+                Linear(
+                    hidden_channels,
+                    hidden_channels,
+                    weight_initializer="kaiming_uniform",
+                )
+                for i in range(n_layers)
             ]
         )
 
-        self.classifier = Linear(hidden_channels[-1], num_classes)
+        self.classifier = Linear(hidden_channels[-1], num_classes, "kaiming_uniform")
 
     def forward(self, x):
         # apply projection layer
         x = self.proj(x)
-        x = F.relu(x)
+        x = F.elu(x)
 
         # apply all hidden layers
         for layer in self.hidden_layers:
             x = layer(x)
-            x = F.relu(x)
+            x = F.elu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 
         return self.classifier(x)
 
+    def projection_layer_l1_norm(self):
+        """
+        Returns the l1 norm of the projection layer
+        """
+        return torch.norm(self.proj.weight, 1)
 
-class SepareteMLP(torch.nn.Module):
-    def __init__(self, input_szs, num_classes, proj_dim, hidden_channels, dropout):
+
+class MLP_class_specific(torch.nn.Module):
+    def __init__(
+        self,
+        omic_channels,
+        input_szs,
+        num_classes,
+        proj_dim,
+        hidden_channels,
+        dropout,
+        n_layers=1,
+        elu_alpha=1.0,
+    ):
         super().__init__()
         torch.manual_seed(12345)
 
+        self.dropout = dropout
+        self.elu_alpha = elu_alpha
+
         # create a separate projection layer for each input
-        self.projections = torch.nn.ModuleList(
-            [Linear(input_sz, proj_dim) for input_sz in input_szs]
+        self.projections = ModuleDict(
+            {
+                oc: Linear(isz, proj_dim, weight_initializer="kaiming_uniform")
+                for oc, isz in zip(omic_channels, input_szs)
+            }
         )
 
-        self.dropout = dropout
-        self.hidden_layers = torch.nn.ModuleList(
-            [
-                Linear(hidden_channels[i], hidden_channels[i + 1])
-                for i in range(len(hidden_channels) - 1)
-            ]
+        # create a separate linear layer for each input
+        self.lin1 = ModuleDict(
+            {
+                oc: Linear(
+                    proj_dim, hidden_channels[0], weight_initializer="kaiming_uniform"
+                )
+                for oc in omic_channels
+            }
         )
-        self.classifier = Linear(hidden_channels[-1], num_classes)
+
+        self.intergrator = AttentionIntegrator(
+            omic_channels=omic_channels,
+            input_szs=[hidden_channels[0] for _ in omic_channels],
+            hidden_channels=hidden_channels,
+            dropout=dropout,
+        )
 
     def forward(self, x):
         """
@@ -103,23 +141,32 @@ class SepareteMLP(torch.nn.Module):
 
         # apply projection layer to each input
         for i, proj in enumerate(self.projections):
-            x[i] = proj(x[i]).relu()
+            x[i] = proj(x[i])
+            x[i] = F.elu(x[i], alpha=self.elu_alpha)
+            x[i] = F.dropout(x[i], p=self.dropout, training=self.training)
 
-        # apply projection layer
-        x = torch.cat([proj(x[i]) for i, proj in enumerate(self.projections)], dim=1)
-        x = F.relu(x)
         # apply all hidden layers
         for layer in self.hidden_layers:
             x = layer(x)
-            x = F.relu(x)
+            x = F.elu(x, alpha=self.elu_alpha)
             x = F.dropout(x, p=self.dropout, training=self.training)
+
         return self.classifier(x)
 
+    def projection_layer_l1_norm(self):
+        """
+        Returns the l1 norm of the projection layers
+        """
+        l1_norm = torch.tensor(0.0)
+        for proj_layer in self.projections.items():
+            l1_norm += torch.norm(proj_layer.weight, 1)
+        return l1_norm
 
-class MLPTrainer(L.LightningModule):  # Fixed the import of LightningModule
-    def __init__(self, net, lr, l1_lambda, l2_lambda):  # Changed 'Net' to 'net'
+
+class MLPTrainer(L.LightningModule):
+    def __init__(self, net, lr, l1_lambda, l2_lambda):
         super().__init__()
-        self.net = net  # Changed 'Net' to 'net'
+        self.net = net
         self.lr = lr
         self.l1_lambda = l1_lambda
         self.l2_lambda = l2_lambda
@@ -133,14 +180,11 @@ class MLPTrainer(L.LightningModule):  # Fixed the import of LightningModule
         x, y = batch
         x = x.view(x.size(0), -1)
         y_pred = self.net(x)
-        loss = F.cross_entropy(y_pred, y)  # Changed 'torch.nn.functional' to 'F'
+        loss = F.cross_entropy(y_pred, y)
 
         if self.l1_lambda is not None:
             # L1 regularization for self.net.proj layer
-            l1_reg = torch.tensor(0.0).to(self.device)
-            for param in self.net.proj.parameters():
-                l1_reg += torch.norm(param, 1)
-
+            l1_reg = self.net.projection_layer_l1_norm()
             loss += self.l1_lambda * l1_reg
 
         return loss

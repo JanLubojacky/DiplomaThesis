@@ -323,16 +323,16 @@ def mrmr_selection(
     X = X_df[:, 1:].to_numpy().T
 
     if n_preselected_features is not None:
-        select_mask = variance_filtering(X, n_features=n_preselected_features)
+        select_indices = variance_filtering(X, n_features=n_preselected_features)
     else:
-        select_mask = np.ones(X.shape[1], dtype=bool)
+        select_indices = np.ones(X.shape[1], dtype=bool)
 
     # preselect features & training samples
-    X_train = X[train_mask][:, select_mask]
+    X_train = X[train_mask][:, select_indices]
 
     # createa a dataframe with the selected features
     train_df = pl.DataFrame(X_train)
-    train_df.columns = np.array(feature_names)[select_mask].tolist()
+    train_df.columns = np.array(feature_names)[select_indices].tolist()
     train_df = train_df.with_columns(target=pl.Series(y[train_mask]))
 
     selected_features = mrmr.polars.mrmr_classif(

@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def variance_filtering(X_train, n_features=500):
+def variance_filtering(X_train, n_features=500, count_th=0.9):
     """
     Order features by variance and select the ones with the biggest variance
 
@@ -16,9 +16,30 @@ def variance_filtering(X_train, n_features=500):
     var_order = np.argsort(X_train.var(axis=0))
 
     # select the features with the largest variance
-    best_mask = var_order >= (X_train.shape[1] - n_features)
+    best_indices = var_order[-n_features:]
 
-    return best_mask
+    return best_indices
+
+
+# def count_filtering(X_train, count_th):
+#     """
+#     Order features by count and select the ones with the biggest count
+#
+#     Args:
+#         X_train: np.array of shape (n_samples, n_features)
+#     Returns:
+#         best_mask: np.array of shape (n_features,) with True for selected features
+#     """
+#
+#     # ascending order of count
+#     count_order = np.argsort(X_train.sum(axis=0))
+#
+#     # filter out bottom count_th features
+#     best_mask = count_order <= (X_train.shape[1] - int(count_th * X_train.shape[1]))
+#
+#     print((X_train.shape[1] - int(count_th * X_train.shape[1])))
+#
+#     return best_mask
 
 
 def class_variational_selection(X_train, y, n_features=500):
@@ -39,7 +60,8 @@ def class_variational_selection(X_train, y, n_features=500):
     class_var_order = np.argsort(feat_class_vars)
 
     # select the features with the largest variance
-    best_mask = class_var_order >= (feat_class_vars.shape[0] - n_features)
-    best_idx = np.where(best_mask)[0]
+    # best_mask = class_var_order >= (feat_class_vars.shape[0] - n_features)
+    # best_idx = np.where(best_mask)[0]
+    best_idx = class_var_order[-n_features:]
 
-    return best_mask, best_idx
+    return best_idx

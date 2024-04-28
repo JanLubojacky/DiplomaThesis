@@ -15,8 +15,8 @@ class LinearIntegration(torch.nn.Module):
 
     def __init__(self, n_views, view_dim, n_classes, hidden_dim, dropout=0.2):
         super().__init__()
-        self.lin1 = pyg.nn.Linear(-1, hidden_dim, weight_initializer="kaiming_uniform")
-        self.lin2 = pyg.nn.Linear(-1, n_classes, weight_initializer="kaiming_uniform")
+        self.lin1 = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
+        self.lin2 = pyg.nn.Linear(-1, n_classes, weight_initializer="glorot")
         self.dropout = dropout
 
     def forward(self, x):
@@ -41,13 +41,24 @@ class AttentionIntegrator(torch.nn.Module):
     Integrates multi-omics data using a self-attention mechanism.
     """
 
-    def __init__(self, n_views, view_dim, n_classes, hidden_dim, dropout=0.2):
+    def __init__(
+        self,
+        n_views,
+        view_dim,
+        n_classes,
+        hidden_dim,
+        dropout=0.2,
+        one_lin_layer=False,
+        elu_alpha=1.0,
+    ):
         super().__init__()
         self.n_views = n_views
         self.view_dim = view_dim
         self.n_classes = n_classes
         self.hidden_dim = hidden_dim
         self.dropout = dropout
+        self.one_lin_layer = one_lin_layer
+        self.elu_alpha = elu_alpha
 
         # Linear layers for the self-attention mechanism
         self.query = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
@@ -76,8 +87,9 @@ class AttentionIntegrator(torch.nn.Module):
 
         x = torch.matmul(qkt, v)
 
-        # x = self.lin1(x)
-        # x = F.elu(x)
+        if self.one_lin_layer:
+            x = self.lin1(x)
+            x = F.elu(x, alpha=self.elu_alpha)
 
         # (n_samples, n_omics, n_features) -> (n_samples, n_features*n_omics)
         x = x.reshape(x.shape[0], -1)
@@ -184,12 +196,10 @@ class VCDN(torch.nn.Module):
                 n_views, n_classes, kernel_size=(1, view_dim)
             )
         else:
-            self.lin1 = pyg.nn.Linear(
-                -1, hidden_dim, weight_initializer="kaiming_uniform"
-            )
+            self.lin1 = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
             # use a single linear layer to classify the samples
             self.classifier = pyg.nn.Linear(
-                hidden_dim, n_classes, weight_initializer="kaiming_uniform"
+                hidden_dim, n_classes, weight_initializer="glorot"
             )
 
     def forward(self, x):
