@@ -3,7 +3,7 @@ import optuna
 import optuna.logging
 import xgboost as xgb
 from sklearn.metrics import accuracy_score, f1_score
-from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.preprocessing import StandardScaler
 
 from baseline_evals.feature_selection import class_variational_selection
@@ -16,7 +16,7 @@ def xgboost_eval(
     n_trials: int = 50,
     test_size: float = 0.2,
     random_state: int = 3,
-    n_features: int | None = 5000,
+    n_features: int | None = 10000,
     norm_features: bool = True,
     verbose: bool = True,
 ) -> dict:
@@ -48,10 +48,10 @@ def xgboost_eval(
 
         print(f"{trial.number} / {n_trials}")
 
-        sss = StratifiedShuffleSplit(
-            n_splits=n_evals, test_size=test_size, random_state=random_state
-        )
-        # skf = StratifiedKFold(n_splits=n_evals)
+        # sss = StratifiedShuffleSplit(
+        #     n_splits=n_evals, test_size=test_size, random_state=random_state
+        # )
+        sss = StratifiedKFold(n_splits=n_evals)
 
         params = {
             "verbosity": 1,
@@ -102,13 +102,13 @@ def xgboost_eval(
 
             if n_features:
                 # apply feature selection
-                select_mask, select_idx = class_variational_selection(
+                select_idx = class_variational_selection(
                     X_train, y_train, n_features
                 )
-                # select_mask = variance_filtering(X_train, n_features)
-                X_train = X_train[:, select_mask]
-                X_val = X_val[:, select_mask]
-                X_test = X_test[:, select_mask]
+                # select_idx = variance_filtering(X_train, n_features)
+                X_train = X_train[:, select_idx]
+                X_val = X_val[:, select_idx]
+                X_test = X_test[:, select_idx]
 
             if norm_features:
                 std_scale = StandardScaler().fit(X_train)

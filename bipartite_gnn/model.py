@@ -359,11 +359,11 @@ class BiRGAT(torch.nn.Module):
         x_dict = data.x_dict
         edge_dict = data.edge_index_dict
 
-        # for omic in self.omic_channels:
-        #     x_dict[omic] = F.elu(self.projections[omic](x_dict[omic]))
-        #     x_dict[omic] = F.dropout(
-        #         x_dict[omic], p=self.dropout, training=self.training
-        #     )
+        for omic in self.omic_channels:
+            x_dict[omic] = F.elu(self.projections[omic](x_dict[omic]))
+            # x_dict[omic] = F.dropout(
+            #     x_dict[omic], p=self.dropout, training=self.training
+            # )
 
         # print(x_dict[omic].shape)
         #

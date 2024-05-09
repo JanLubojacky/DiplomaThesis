@@ -3,8 +3,9 @@ import optuna
 import optuna.logging
 from sklearn.metrics import accuracy_score, f1_score
 
-# from sklearn.model_selection import StratifiedKFold
-from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import StratifiedKFold
+
+# from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 
@@ -17,12 +18,13 @@ optuna.logging.set_verbosity(optuna.logging.ERROR)
 def knn_eval(
     X: np.ndarray,
     y: np.ndarray,
-    n_evals: int = 10,
-    n_trials: int = 20,
+    n_evals: int = 5,
+    n_trials: int = 30,
     nn_range: tuple = (1, 30),
     test_size: float = 0.3,
     random_state: int = 3,
-    n_features: int | None = 500,
+    n_features: int = 500,
+    select_n_features: bool = False,
     norm_features: bool = True,
     verbose: bool = True,
 ) -> dict:
@@ -49,18 +51,23 @@ def knn_eval(
         "f1_weighted_std": 0.0,
     }
 
+    print(n_features)
+
     def objective(trial):
         nonlocal best_results
 
-        sss = StratifiedShuffleSplit(
-            n_splits=n_evals, test_size=test_size, random_state=random_state
-        )
-        # skf = StratifiedKFold(n_splits=n_evals)
+        # sss = StratifiedShuffleSplit(
+        #     n_splits=n_evals, test_size=test_size, random_state=random_state
+        # )
+        sss = StratifiedKFold(n_splits=n_evals)
 
         knn = KNeighborsClassifier(
             n_neighbors=trial.suggest_int("n_neighbors", nn_range[0], nn_range[1]),
             # weights=trial.suggest_categorical("weights", ["uniform", "distance"]),
         )
+
+        if select_n_features:
+            n_features = trial.suggest_int("n_features", 100, 5000)
 
         accs = np.zeros(n_evals)
         f1_macros = np.zeros(n_evals)
@@ -76,12 +83,10 @@ def knn_eval(
 
             if n_features:
                 # apply feature selection
-                select_mask, select_idx = class_variational_selection(
-                    X_train, y_train, n_features
-                )
+                select_idx = class_variational_selection(X_train, y_train, n_features)
                 # select_mask = variance_filtering(X_train, n_features)
-                X_train = X_train[:, select_mask]
-                X_test = X_test[:, select_mask]
+                X_train = X_train[:, select_idx]
+                X_test = X_test[:, select_idx]
 
             if norm_features:
                 std_scale = StandardScaler().fit(X_train)

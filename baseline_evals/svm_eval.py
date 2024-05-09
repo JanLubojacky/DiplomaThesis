@@ -19,7 +19,7 @@ from baseline_evals.feature_selection import class_variational_selection
 def svm_eval(
     X: np.ndarray,
     y: np.ndarray,
-    n_evals: int = 10,
+    n_evals: int = 5,
     n_trials: int = 40,
     C_range: tuple = (1e-3, 1e3),
     gamma_range: tuple = (1e-3, 1e3),
@@ -27,6 +27,7 @@ def svm_eval(
     random_state: int = 3,
     n_features_preselect: int | None = None,
     n_features: int | None = 500,
+    select_n_features: bool = False,
     norm_features: bool = True,
     mode="linear",
     verbose: bool = True,
@@ -87,6 +88,9 @@ def svm_eval(
                 "kernel": "rbf",
             }
 
+        if select_n_features:
+            n_features = trial.suggest_int("n_features", 500, 5000)
+
         accs = np.zeros(n_evals)
         f1_macros = np.zeros(n_evals)
         f1_scores = np.zeros(n_evals)
@@ -101,11 +105,11 @@ def svm_eval(
 
             if n_features_preselect:
                 # apply feature pre-selection
-                select_mask, select_idx = class_variational_selection(
+                select_idx = class_variational_selection(
                     X_train, y_train, n_features_preselect
                 )
-                X_train = X_train[:, select_mask]
-                X_test = X_test[:, select_mask]
+                X_train = X_train[:, select_idx]
+                X_test = X_test[:, select_idx]
 
             if norm_features:
                 std_scale = StandardScaler().fit(X_train)
@@ -113,9 +117,11 @@ def svm_eval(
                 X_test = std_scale.transform(X_test)
 
             if mode == "linear":
-                rfe = RFE(LinearSVC(**params), step=0.1)
+                rfe = RFE(
+                    LinearSVC(**params), step=0.1, n_features_to_select=n_features
+                )
             elif mode == "rbf":
-                rfe = RFE(SVC(**params), step=0.1)
+                rfe = RFE(SVC(**params), step=0.1, n_features_to_select=n_features)
 
             try:
                 with warnings.catch_warnings():
