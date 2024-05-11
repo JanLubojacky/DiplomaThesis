@@ -97,11 +97,8 @@ def svm_eval(
 
         # 10 times repeated holdout testing with different random splits
         for i, (train_index, test_index) in enumerate(skf.split(X, y)):
-            # stratified split
-            X_train = X[train_index]
-            y_train = y[train_index]
-            X_test = X[test_index]
-            y_test = y[test_index]
+            X_train, X_test = X[train_index], X[test_index]
+            y_train, y_test = y[train_index], y[test_index]
 
             if n_features_preselect:
                 # apply feature pre-selection

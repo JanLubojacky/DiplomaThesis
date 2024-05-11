@@ -159,8 +159,6 @@ def construct_cross_feature_discovery_tensor(x, flatten_output=True):
     # (n_omics, n_samples, n_features) -> (n_samples, n_omics, n_features)
     x = torch.transpose(x, 0, 1)
 
-    print(x)
-
     # Get the number of samples, omics, and features
     n_samples, n_omics, n_features = x.shape
 

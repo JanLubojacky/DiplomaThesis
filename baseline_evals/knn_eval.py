@@ -73,20 +73,48 @@ def knn_eval(
         f1_macros = np.zeros(n_evals)
         f1_scores = np.zeros(n_evals)
 
-        # 10 times repeated holdout testing with different random splits
-        for i, (train_index, test_index) in enumerate(sss.split(X, y)):
-            # stratified split
+        for i, (train_index, test_index) in enumerate(sss.split(np.zeros(len(y)), y)):
+            # # concat after preprocessing
+            # X_train = []
+            # X_test = []
+            # y_train = y[train_index]
+            # y_test = y[test_index]
+            #
+            # if n_features:
+            #     for omic in X:
+            #         if omic.shape[1] > n_features:
+            #             # apply feature selection
+            #             select_idx = class_variational_selection(
+            #                 omic[train_index], y_train, n_features
+            #             )
+            #
+            #             omic = omic[:, select_idx]
+            #
+            #         X_train.append(omic[train_index])
+            #         X_test.append(omic[test_index])
+            #
+            # if norm_features:
+            #     for j in range(len(X_train)):
+            #         std_scale = StandardScaler().fit(X_train[j])
+            #         X_train[j] = std_scale.transform(X_train[j])
+            #         X_test[j] = std_scale.transform(X_test[j])
+            #
+            # X_train = np.hstack(X_train)
+            # X_test = np.hstack(X_test)
+
+            # concat before preprocessing
             X_train = X[train_index]
-            y_train = y[train_index]
             X_test = X[test_index]
+            y_train = y[train_index]
             y_test = y[test_index]
 
             if n_features:
-                # apply feature selection
+                # apply feature pre-selection
                 select_idx = class_variational_selection(X_train, y_train, n_features)
-                # select_mask = variance_filtering(X_train, n_features)
                 X_train = X_train[:, select_idx]
                 X_test = X_test[:, select_idx]
+
+                # apply additional feature selection with mrmr
 
             if norm_features:
                 std_scale = StandardScaler().fit(X_train)

@@ -11,10 +11,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.preprocessing import StandardScaler
 from torch_geometric.nn import Linear
 
-from baseline_evals.feature_selection import (
-    class_variational_selection,
-    variance_filtering,
-)
+from baseline_evals.feature_selection import variance_filtering
 
 log = logging.getLogger("pytorch_lightning")
 log.propagate = False
@@ -202,9 +199,11 @@ class MLPTrainer(L.LightningModule):
         loss = F.cross_entropy(y_pred, y)
 
         if self.regularization == "l1":
+            # print("l1 regularization")
             l1_reg = self.net.projection_layer_l1_norm()
             loss += self.reg_lambda * l1_reg
         elif self.regularization == "inner_mat":
+            # print("inner mat regularization")
             inner_mat_reg = self.net.projection_layer_inner_mat_reg()
             loss += self.reg_lambda * inner_mat_reg
 
@@ -259,7 +258,8 @@ def mlp_eval(
     n_evals=5,
     n_trials=100,
     val_test_size=0.4,
-    n_features_preselect=10000,
+    # n_features_preselect=10000,
+    # n_features=5000,
     verbose=True,
     reg_type="l1",
 ):
@@ -287,16 +287,16 @@ def mlp_eval(
         params = {
             "lr": trial.suggest_float("lr", 1e-5, 1e-3, log=True),
             "l1_lambda": trial.suggest_float("l1_lambda", 1e-4, 5e-2, log=True),
-            "l2_lambda": 5e-4,  # trial.suggest_float("l2_lambda", 1e-5, 1e-3, log=True),
-            "batch_sz": trial.suggest_categorical("batch_sz", [32, 64, 128]),
-            "proj_dim": trial.suggest_int("proj_dim", 32, 512),
-            "dropout": trial.suggest_float("dropout", 0.05, 0.8),
+            "l2_lambda": trial.suggest_float("l2_lambda", 1e-5, 1e-3, log=True),
+            "batch_sz": 128,  # trial.suggest_categorical("batch_sz", [32, 64, 128]),
+            "proj_dim": trial.suggest_int("proj_dim", 32, 256),
+            "dropout": 0.5,  # trial.suggest_float("dropout", 5),
             # "num_layers": num_layers,
             "hidden_channels": trial.suggest_int("hidden_channels", 32, 256),
             "regularization": reg_type,  # trial.suggest_categorical("regularization", ["l1", "inner_mat"]),
         }
 
-        n_features = trial.suggest_int("n_features", 100, n_features_preselect)
+        n_features = 3000  # trial.suggest_int("n_features", 3000)
 
         # params = {
         #     "lr": 1e-3,  # trial.suggest_float("lr", 1e-4, 1e-1, log=True),
@@ -333,16 +333,17 @@ def mlp_eval(
             X_test = X[test_idx]
 
             if n_features:
-                # feature pre-selection
-                select_idx = variance_filtering(X_train, n_features_preselect)
-                X_train = X_train[:, select_idx]
-                X_val = X_val[:, select_idx]
-                X_test = X_test[:, select_idx]
+                # # feature pre-selection
+                # select_idx = variance_filtering(X_train, n_features)
+                # X_train = X_train[:, select_idx]
+                # X_val = X_val[:, select_idx]
+                # X_test = X_test[:, select_idx]
 
                 # feature selection
-                select_idx = class_variational_selection(
-                    X_train, y[train_index], n_features
-                )
+                # select_idx = class_variational_selection(
+                #     X_train, y[train_index], n_features
+                # )
+                select_idx = variance_filtering(X_train, n_features)
                 X_train = X_train[:, select_idx]
                 X_val = X_val[:, select_idx]
                 X_test = X_test[:, select_idx]
@@ -417,7 +418,7 @@ def mlp_eval(
                 < (best_results["f1_weighted"] - 2 * best_results["f1_weighted_std"])
             ):
                 print(
-                    f"Pruning trial after {i} evals, cause {f1_weighteds[:i].mean()} < {best_results['f1_weighted']}"
+                    f"Pruning trial after {i + 1} evals, cause {f1_weighteds[:i].mean()} < {best_results['f1_weighted']}"
                 )
                 break
 

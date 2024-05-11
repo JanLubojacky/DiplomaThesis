@@ -65,6 +65,14 @@ def xgboost_eval(
             "num_class": len(np.unique(y)),
         }
 
+        params_default = {
+            "verbosity": 1,
+            "objective": "multi:softmax",
+            "eval_metric": "mlogloss",
+            "booster": "gblinear",
+            "num_class": len(np.unique(y)),
+        }
+
         if params["booster"] == "gbtree" or params["booster"] == "dart":
             params["max_depth"] = trial.suggest_int("max_depth", 1, 9)
             params["eta"] = trial.suggest_float("eta", 1e-8, 1.0, log=True)
@@ -102,9 +110,7 @@ def xgboost_eval(
 
             if n_features:
                 # apply feature selection
-                select_idx = class_variational_selection(
-                    X_train, y_train, n_features
-                )
+                select_idx = class_variational_selection(X_train, y_train, n_features)
                 # select_idx = variance_filtering(X_train, n_features)
                 X_train = X_train[:, select_idx]
                 X_val = X_val[:, select_idx]
