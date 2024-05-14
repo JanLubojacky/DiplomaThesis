@@ -129,6 +129,11 @@ def construct_cross_feature_discovery_tensor_single(x, flatten_output=True):
         x: torch.Tensor, where x is (n_omics, n_features)
     """
 
+    # if num of omics is 1, return the tensor
+    # and remove the first dimension
+    if x.shape[0] == 1:
+        return x.squeeze()
+
     # Initialize the output tensor with the first 2D tensor
     output_tensor = torch.outer(x[0], x[1])
 
@@ -157,7 +162,7 @@ def construct_cross_feature_discovery_tensor(x, flatten_output=True):
     """
 
     # (n_omics, n_samples, n_features) -> (n_samples, n_omics, n_features)
-    x = torch.transpose(x, 0, 1)
+    # x = torch.transpose(x, 0, 1)
 
     # Get the number of samples, omics, and features
     n_samples, n_omics, n_features = x.shape
@@ -202,8 +207,11 @@ class VCDN(torch.nn.Module):
 
     def forward(self, x):
         """
-        where x is (n_omics, n_samples, n_features)
+        where x is (n_samples, n_omics, n_features)
         """
+
+        # print(x.shape)
+
         if self.convolutional:
             cfdt = construct_cross_feature_discovery_tensor(x, flatten_output=False)
         else:

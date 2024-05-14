@@ -32,7 +32,7 @@ class GNNTrainer:
         )
 
         # L1 regularization for the projection layers
-        if self.model.projections is not None and self.params["l1_lambda"] > 0.0:
+        if self.params["l1_lambda"]:
             l1_loss = self.model.projection_layers_l1_norm()
             loss += l1_loss * self.params["l1_lambda"]
 
@@ -46,7 +46,15 @@ class GNNTrainer:
 
         return loss, out
 
-    def train(self, data: pyg.data.HeteroData, epochs: int, lr=1e-3, log_interval=50):
+    def train(
+        self,
+        data: pyg.data.HeteroData,
+        epochs: int,
+        lr=1e-3,
+        log_interval=50,
+        save_best_model=False,
+        best_model_name="best_model.pth",
+    ):
         """ """
 
         # Set the device to CUDA if available, otherwise use CPU
@@ -56,12 +64,14 @@ class GNNTrainer:
         # self.model = self.model.to(self.device)
         # data = data.to(device)
         best_eval = 0
+        best_val_performance = torch.zeros(3)
+        best_test_performance = torch.zeros(3)
 
         for epoch in range(1, epochs + 1):
             # very important to clone
             train_loss, out = self.one_epoch(data.clone())
 
-            if epoch % log_interval == 0:
+            with torch.no_grad():
                 data = data.to("cpu")
 
                 train_acc = accuracy_score(
@@ -88,21 +98,29 @@ class GNNTrainer:
                 if eval > best_eval:
                     best_eval = eval
 
-                    # Save the model
-                    print("Saving the best model")
-                    torch.save(self.model.state_dict(), "best_model_risk.pth")
+                    if save_best_model:
+                        # Save the model
+                        print(f"Saving the best model under {best_model_name}")
+                        torch.save(self.model.state_dict(), best_model_name)
 
-                print(f"Epoch: {epoch:03d}, ")
-                print(
-                    f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Train F1 Macro: {train_f1_m:.4f}, Train F1 Weighted: {train_f1_w:.4f}"
-                )
-                print(
-                    f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Val F1 Macro: {val_f1_m:.4f}, Val F1 Weighted: {val_f1_w:.4f}"
-                )
-                print(
-                    f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.4f}, Test F1 Macro: {test_f1_m:.4f}, Test F1 Weighted: {test_f1_w:.4f}"
-                )
-                print("#" * 50)
+                    best_val_performance = torch.tensor([val_acc, val_f1_m, val_f1_w])
+                    best_test_performance = torch.tensor([test_acc, test_f1_m, test_f1_w])
+
+                if epoch % log_interval == 0:
+
+                    print(f"Epoch: {epoch:03d}:")
+                    print(
+                        f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Train F1 Macro: {train_f1_m:.4f}, Train F1 Weighted: {train_f1_w:.4f}"
+                    )
+                    print(
+                        f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Val F1 Macro: {val_f1_m:.4f}, Val F1 Weighted: {val_f1_w:.4f}"
+                    )
+                    print(
+                        f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.4f}, Test F1 Macro: {test_f1_m:.4f}, Test F1 Weighted: {test_f1_w:.4f}"
+                    )
+                    print("#" * 50)
+
+        return best_val_performance, best_test_performance
 
     def test(self, data: pyg.data.HeteroData, mask):
         """

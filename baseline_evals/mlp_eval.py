@@ -11,7 +11,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.preprocessing import StandardScaler
 from torch_geometric.nn import Linear
 
-from baseline_evals.feature_selection import variance_filtering
+from baseline_evals.feature_selection import class_variational_selection
 
 log = logging.getLogger("pytorch_lightning")
 log.propagate = False
@@ -290,13 +290,13 @@ def mlp_eval(
             "l2_lambda": trial.suggest_float("l2_lambda", 1e-5, 1e-3, log=True),
             "batch_sz": 128,  # trial.suggest_categorical("batch_sz", [32, 64, 128]),
             "proj_dim": trial.suggest_int("proj_dim", 32, 256),
-            "dropout": 0.5,  # trial.suggest_float("dropout", 5),
+            "dropout": 0.5,  # trial.suggest_float("dropout", 0.0, 0.7),
             # "num_layers": num_layers,
             "hidden_channels": trial.suggest_int("hidden_channels", 32, 256),
             "regularization": reg_type,  # trial.suggest_categorical("regularization", ["l1", "inner_mat"]),
         }
 
-        n_features = 3000  # trial.suggest_int("n_features", 3000)
+        n_features = trial.suggest_int("n_features", 100, 3000)
 
         # params = {
         #     "lr": 1e-3,  # trial.suggest_float("lr", 1e-4, 1e-1, log=True),
@@ -312,8 +312,6 @@ def mlp_eval(
         accs = np.zeros(n_evals)
         f1_macros = np.zeros(n_evals)
         f1_weighteds = np.zeros(n_evals)
-
-        # select_masks = []
 
         for i, (train_index, test_index) in enumerate(sss.split(X, y)):
             print(f"Eval {i+1} / {n_evals}")
@@ -333,17 +331,11 @@ def mlp_eval(
             X_test = X[test_idx]
 
             if n_features:
-                # # feature pre-selection
-                # select_idx = variance_filtering(X_train, n_features)
-                # X_train = X_train[:, select_idx]
-                # X_val = X_val[:, select_idx]
-                # X_test = X_test[:, select_idx]
-
                 # feature selection
-                # select_idx = class_variational_selection(
-                #     X_train, y[train_index], n_features
-                # )
-                select_idx = variance_filtering(X_train, n_features)
+                select_idx = class_variational_selection(
+                    X_train, y[train_index], n_features
+                )
+                # select_idx = variance_filtering(X_train, n_features)
                 X_train = X_train[:, select_idx]
                 X_val = X_val[:, select_idx]
                 X_test = X_test[:, select_idx]

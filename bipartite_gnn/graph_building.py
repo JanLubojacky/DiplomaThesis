@@ -24,26 +24,108 @@ def cosine_similarity_matrix(matrix):
     return cosine_similarities
 
 
-def threshold_matrix(cosine_similarities, th=0.9, verbose=True):
-    A = (cosine_similarities > th).float()  # - torch.eye(cosine_similarities.shape[0])
+# def threshold_matrix(cosine_similarities, self_connections, avg_degree=None, avg_degree_tol=0.5, th=0.9, verbose=True):
+#     """
+#     Given a matrix of cosine similarities, threshold the values to obtain a binary adjacency matrix
+#
+#     Args:
+#         cosine_similarities (torch.Tensor): A 2D tensor representing the cosine similarities between samples
+#         self_connections (bool): Whether to allow self-connections in the graph
+#         th (float): The threshold value for binarisation
+#         verbose (bool): Whether to print the number of isolated samples and the average degree
+#     """
+#
+#     # binarisation
+#     if avg_degree is not None:
+#         current_degree = 0
+#         while not (avg_degree - avg_degree_tol < current_degree < avg_degree + avg_degree_tol):
+#             A = torch.where(cosine_similarities > th, 1, 0)
+#             current_degree = A.sum(dim=1).mean()
+#             th += 0.01
+#
+#     A = torch.where(cosine_similarities > th, 1, 0)
+#
+#     if not self_connections:
+#         A = A - torch.eye(A.shape[0])
+#
+#     if verbose:
+#         print(
+#             f"Isolated samples = {(A.sum(dim=1) == 0).sum()}, avg degree = {A.sum(dim=1).mean()}"
+#         )
+#
+#     return A
+
+
+def threshold_matrix(
+    cosine_similarities,
+    self_connections,
+    target_avg_degree=None,
+    avg_degree_tol=0.5,
+    th_min=0.5,
+    th_max=1.0,
+    verbose=True,
+):
+    """
+    Given a matrix of cosine similarities, threshold the values to obtain a binary adjacency matrix
+    if target_avg_degree is given a binary search is used to search for a threshold that will result in
+    target_avg_degree +/- avg_degree_tol
+
+    Args:
+        cosine_similarities (torch.Tensor): A 2D tensor representing the cosine similarities between samples
+        self_connections (bool): Whether to allow self-connections in the graph
+        target_avg_degree (float): The target average degree for the graph
+        avg_degree_tol (float): The tolerance for the average degree
+        th_min (float): The minimum threshold value for binarisation
+        th_max (float): The maximum threshold value for binarisation
+        verbose (bool): Whether to print the number of isolated samples and the average degree
+    """
+
+    # Perform binary search to find the optimal threshold
+    while th_max - th_min > 1e-6:
+        th = (th_min + th_max) / 2
+        A = torch.where(cosine_similarities > th, 1.0, 0.0)
+
+        if not self_connections:
+            A = A - torch.eye(A.shape[0], dtype=torch.float32)
+
+        current_degree = A.sum(dim=1).mean()
+        print(th, current_degree)
+
+        if target_avg_degree is not None:
+            if current_degree > target_avg_degree - avg_degree_tol:
+                th_min = th
+            elif current_degree < target_avg_degree + avg_degree_tol:
+                th_max = th
+
+            if (
+                target_avg_degree - avg_degree_tol
+                < current_degree
+                < target_avg_degree + avg_degree_tol
+            ):
+                break
+        else:
+            break
 
     if verbose:
         print(
-            f"Isolated samples = {(A.sum(dim=1) == 0).sum()}, avg degree = {A.sum(dim=1).mean()}"
+            f"Isolated samples = {(A.sum(dim=1) == 0).sum()}, avg degree = {current_degree}"
         )
 
     return A
 
 
-def keep_n_neighbours(cosine_similarity, n):
+def keep_n_neighbours(cosine_similarity, n, self_connections=False):
     """
     Keep only the n highest values in each row of a matrix, setting all other values to 0
     """
     rows, cols = cosine_similarity.shape
-    A = torch.ones_like(cosine_similarity)
+    if self_connections:
+        A = torch.eye(rows, dtype=torch.float32)
+    else:
+        A = torch.zeros_like(cosine_similarity, dtype=torch.float32)
 
     top_k_indices = torch.topk(cosine_similarity, n, largest=True, dim=1).indices
-    print(top_k_indices)
+
     for r in range(rows):
         A[r, top_k_indices[r]] = 1
 
