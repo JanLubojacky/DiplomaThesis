@@ -2,8 +2,6 @@ import torch
 import torch.nn.functional as F
 import torch_geometric as pyg
 
-import torch.nn as nn
-
 
 class LinearIntegration(torch.nn.Module):
     """
@@ -15,19 +13,16 @@ class LinearIntegration(torch.nn.Module):
 
     def __init__(self, n_views, view_dim, n_classes, hidden_dim, dropout=0.2):
         super().__init__()
-        self.lin1 = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
-        self.lin2 = pyg.nn.Linear(-1, n_classes, weight_initializer="glorot")
+        self.lin1 = pyg.nn.Linear(-1, hidden_dim, weight_initializer="kaiming_uniform")
+        self.lin2 = pyg.nn.Linear(-1, n_classes, weight_initializer="kaiming_uniform")
         self.dropout = dropout
 
     def forward(self, x):
         """
         where x is (n_omics, n_samples, n_features)
         """
-
-        # (n_omics, n_samples, n_features) -> (n_samples, n_omics, n_features)
-        xt = torch.transpose(x, 0, 1)
         # (n_samples, n_omics, n_features) -> (n_samples, n_features*n_omics)
-        x = xt.reshape(xt.shape[0], -1)
+        x = x.reshape(x.shape[0], -1)
 
         x = self.lin1(x)
         x = F.elu(x)
@@ -50,6 +45,7 @@ class AttentionIntegrator(torch.nn.Module):
         dropout=0.2,
         one_lin_layer=False,
         elu_alpha=1.0,
+        use_vcdn=False,
     ):
         super().__init__()
         self.n_views = n_views
@@ -59,23 +55,26 @@ class AttentionIntegrator(torch.nn.Module):
         self.dropout = dropout
         self.one_lin_layer = one_lin_layer
         self.elu_alpha = elu_alpha
+        self.use_vcdn = use_vcdn
 
         # Linear layers for the self-attention mechanism
-        self.query = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
-        self.key = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
-        self.value = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
+        self.query = pyg.nn.Linear(-1, hidden_dim, weight_initializer="kaiming_uniform")
+        self.key = pyg.nn.Linear(-1, hidden_dim, weight_initializer="kaiming_uniform")
+        self.value = pyg.nn.Linear(-1, hidden_dim, weight_initializer="kaiming_uniform")
 
         # Linear layers for the final transformation
-        self.lin1 = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
-        self.lin2 = pyg.nn.Linear(-1, n_classes, weight_initializer="glorot")
+        self.lin1 = pyg.nn.Linear(-1, hidden_dim, weight_initializer="kaiming_uniform")
 
-        # Dropout layer
-        self.dropout = nn.Dropout(dropout)
+        if use_vcdn:
+            self.final_integration_layer = VCDN(
+                n_views, n_classes, n_classes, hidden_dim
+            )
+        else:
+            self.final_integration_layer = pyg.nn.Linear(
+                -1, n_classes, weight_initializer="kaiming_uniform"
+            )
 
-    def forward(self, x):
-        # (n_omics, n_samples, n_features) -> (n_samples, n_omics, n_features)
-        xt = torch.transpose(x, 0, 1)
-
+    def forward(self, xt):
         # query, key, and value matrices
         q = self.query(xt)
         k = self.key(xt)
@@ -87,14 +86,20 @@ class AttentionIntegrator(torch.nn.Module):
 
         x = torch.matmul(qkt, v)
 
-        if self.one_lin_layer:
+        if self.one_lin_layer is False:
             x = self.lin1(x)
             x = F.elu(x, alpha=self.elu_alpha)
 
-        # (n_samples, n_omics, n_features) -> (n_samples, n_features*n_omics)
-        x = x.reshape(x.shape[0], -1)
+        # optionally we can also apply VCDN here instead of linear integration
 
-        x = self.lin2(x)
+        if not self.use_vcdn:
+            # (n_samples, n_omics, n_features) -> (n_samples, n_features*n_omics)
+            x = x.reshape(x.shape[0], -1)
+
+        # print(x.shape)
+        # exit(1)
+
+        x = self.final_integration_layer(x)
 
         return x
 
@@ -211,11 +216,15 @@ class VCDN(torch.nn.Module):
         """
 
         # print(x.shape)
+        # print("Constructing CFD tensor")
 
         if self.convolutional:
             cfdt = construct_cross_feature_discovery_tensor(x, flatten_output=False)
         else:
             cfdt = construct_cross_feature_discovery_tensor(x)
+
+        # print(cfdt.shape)
+        # sys.exit()
 
         x = self.lin1(cfdt)
         x = F.elu(x)

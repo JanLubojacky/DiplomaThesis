@@ -92,91 +92,6 @@ class MLP(torch.nn.Module):
         )
 
 
-# class MLP_class_specific(torch.nn.Module):
-#     def __init__(
-#         self,
-#         omic_channels,
-#         input_szs,
-#         num_classes,
-#         proj_dim,
-#         hidden_channels,
-#         dropout,
-#         n_layers=1,
-#         elu_alpha=1.0,
-#     ):
-#         super().__init__()
-#         torch.manual_seed(12345)
-#
-#         self.dropout = dropout
-#         self.elu_alpha = elu_alpha
-#
-#         # create a separate projection layer for each input
-#         self.projections = ModuleDict(
-#             {
-#                 oc: Linear(isz, proj_dim, weight_initializer="kaiming_uniform")
-#                 for oc, isz in zip(omic_channels, input_szs)
-#             }
-#         )
-#
-#         # create a separate linear layer for each input
-#         self.lin1 = ModuleDict(
-#             {
-#                 oc: Linear(
-#                     proj_dim, hidden_channels[0], weight_initializer="kaiming_uniform"
-#                 )
-#                 for oc in omic_channels
-#             }
-#         )
-#
-#         self.intergrator = AttentionIntegrator(
-#             omic_channels=omic_channels,
-#             input_szs=[hidden_channels[0] for _ in omic_channels],
-#             hidden_channels=hidden_channels,
-#             dropout=dropout,
-#         )
-#
-#     def forward(self, x):
-#         """
-#         Expects input to be in shape (n_omics, n_samples, n_features)
-#         """
-#
-#         # apply projection layer to each input
-#         for i, proj in enumerate(self.projections):
-#             x[i] = proj(x[i])
-#             x[i] = F.elu(x[i], alpha=self.elu_alpha)
-#             x[i] = F.dropout(x[i], p=self.dropout, training=self.training)
-#
-#         # apply all hidden layers
-#         for layer in self.hidden_layers:
-#             x = layer(x)
-#             x = F.elu(x, alpha=self.elu_alpha)
-#             x = F.dropout(x, p=self.dropout, training=self.training)
-#
-#         return self.classifier(x)
-#
-#     def projection_layer_l1_norm(self):
-#         """
-#         Returns the l1 norm of the projection layers
-#         """
-#         l1_norm = torch.tensor(0.0)
-#         for proj_layer in self.projections.items():
-#             l1_norm += torch.norm(proj_layer.weight, 1)
-#         return l1_norm
-#
-#     def projection_layer_inner_mat_reg(self):
-#         """
-#         Return the sum of inner products of each of the projection layers
-#         where inner product is ||W * W^T||_1 + ||W||_2^2
-#         """
-#         inner_prod_reg = torch.tensor(0.0)
-#         for proj_layer in self.projections.items():
-#             inner_prod_reg += (
-#                 torch.norm(torch.matmul(proj_layer.weight, proj_layer.weight.T), 1)
-#                 + torch.norm(proj_layer.weight, 2) ** 2
-#             )
-#         return inner_prod_reg
-
-
 class MLPTrainer(L.LightningModule):
     def __init__(self, net, lr, l2_lambda, reg_lambda=0.001, regularization=None):
         super().__init__()
@@ -257,9 +172,9 @@ def mlp_eval(
     random_state=3,
     n_evals=5,
     n_trials=100,
-    val_test_size=0.4,
+    # val_test_size=0.4,
     # n_features_preselect=10000,
-    # n_features=5000,
+    n_features=5000,
     verbose=True,
     reg_type="l1",
 ):
@@ -271,53 +186,45 @@ def mlp_eval(
         "f1_macro_std": 0.0,
         "f1_weighted_std": 0.0,
     }
-    # best_select_masks = []
 
     def objective(trial):
         nonlocal best_results  # , select_masks
 
-        print(f"Trial {trial.number} / {n_trials}")
+        if verbose:
+            print(f"Trial {trial.number} / {n_trials}")
 
-        # sss = StratifiedShuffleSplit(
-        #     n_splits=n_evals, test_size=val_test_size, random_state=random_state
-        # )
-        sss = StratifiedKFold(n_splits=n_evals)
-
-        # num_layers = trial.suggest_int("num_layers", 1, 3)
-        params = {
-            "lr": trial.suggest_float("lr", 1e-5, 1e-3, log=True),
-            "l1_lambda": trial.suggest_float("l1_lambda", 1e-4, 5e-2, log=True),
-            "l2_lambda": trial.suggest_float("l2_lambda", 1e-5, 1e-3, log=True),
-            "batch_sz": 128,  # trial.suggest_categorical("batch_sz", [32, 64, 128]),
-            "proj_dim": trial.suggest_int("proj_dim", 32, 256),
-            "dropout": 0.5,  # trial.suggest_float("dropout", 0.0, 0.7),
-            # "num_layers": num_layers,
-            "hidden_channels": trial.suggest_int("hidden_channels", 32, 256),
-            "regularization": reg_type,  # trial.suggest_categorical("regularization", ["l1", "inner_mat"]),
-        }
-
-        n_features = trial.suggest_int("n_features", 100, 3000)
+        skf = StratifiedKFold(n_splits=n_evals)
 
         # params = {
-        #     "lr": 1e-3,  # trial.suggest_float("lr", 1e-4, 1e-1, log=True),
-        #     "l2_lambda": 5e-4,  # trial.suggest_float("l2_lambda", 1e-5, 1e-2, log=True),
-        #     "l1_lambda": 0.0015844617502738152,
-        #     "batch_sz": 64,
-        #     "proj_dim": 47,
-        #     "dropout": 0.4237635831392694,
-        #     "hidden_channels": [70],
-        #     "num_layers": 1,
+        #     "lr": trial.suggest_float("lr", 1e-5, 1e-3, log=True),
+        #     "l1_lambda": trial.suggest_float("l1_lambda", 1e-4, 5e-2, log=True),
+        #     "l2_lambda": trial.suggest_float("l2_lambda", 1e-5, 1e-3, log=True),
+        #     "batch_sz": 128,  # trial.suggest_categorical("batch_sz", [32, 64, 128]),
+        #     "proj_dim": 64,  # trial.suggest_int("proj_dim", 32, 256),
+        #     "dropout": 0.5,  # trial.suggest_float("dropout", 0.0, 0.7),
+        #     "hidden_channels": 150,  # trial.suggest_int("hidden_channels", 32, 256),
+        #     "regularization": reg_type,  # trial.suggest_categorical("regularization", ["l1", "inner_mat"]),
         # }
+
+        # n_features = trial.suggest_int("n_features", 100, 1800)
+
+        params = {
+            "lr": 1e-3,  # trial.suggest_float("lr", 1e-4, 1e-1, log=True),
+            "l2_lambda": 5e-4,  # trial.suggest_float("l2_lambda", 1e-5, 1e-2, log=True),
+            "l1_lambda": 0.001,
+            "batch_sz": 128,
+            "proj_dim": 64,
+            "dropout": 0.5,
+            "hidden_channels": 86,
+            "regularization": reg_type,  # trial.suggest_categorical("regularization", ["l1", "inner_mat"]),
+        }
 
         accs = np.zeros(n_evals)
         f1_macros = np.zeros(n_evals)
         f1_weighteds = np.zeros(n_evals)
 
-        for i, (train_index, test_index) in enumerate(sss.split(X, y)):
-            print(f"Eval {i+1} / {n_evals}")
-            # split test_idx into val_idx and test_idx
-            # val_idx = test_index[: len(test_index) // 2]
-            # test_idx = test_index[len(test_index) // 2 :]
+        for i, (train_index, test_index) in enumerate(skf.split(X, y)):
+            print(f"Fold {i + 1} / {n_evals}")
 
             val_idx, test_idx = train_test_split(
                 test_index,
@@ -385,7 +292,7 @@ def mlp_eval(
             trainer = L.Trainer(
                 max_epochs=50,
                 callbacks=[L.callbacks.EarlyStopping(monitor="val_loss", mode="min")],
-                log_every_n_steps=-1,
+                log_every_n_steps=5,
                 enable_progress_bar=False,
             )
 
@@ -405,18 +312,20 @@ def mlp_eval(
             ).mean()
 
             # if after 2 evals this doesnt seem promising, break
-            if i >= 2 and (
+            if i >= 1 and (
                 f1_weighteds[:i].mean()
                 < (best_results["f1_weighted"] - 2 * best_results["f1_weighted_std"])
             ):
-                print(
-                    f"Pruning trial after {i + 1} evals, cause {f1_weighteds[:i].mean()} < {best_results['f1_weighted']}"
-                )
+                if verbose:
+                    print(
+                        f"Pruning trial after {i + 1} evals, cause {f1_weighteds[:i].mean()} < {best_results['f1_weighted']}"
+                    )
                 break
 
-        print(accs)
-        print(f1_macros)
-        print(f1_weighteds)
+        if verbose:
+            print(accs)
+            print(f1_macros)
+            print(f1_weighteds)
 
         acc = np.mean(accs)
         f1_macro = np.mean(f1_macros)
@@ -440,7 +349,9 @@ def mlp_eval(
             best_results["f1_macro_std"] = f1_macro_std
             best_results["f1_weighted_std"] = f1_weighted_std
 
-            print(best_results)
+            if verbose:
+                print("New best results")
+                print(best_results)
 
             # save the best model
             # torch.save(mlp.state_dict(), "mlp_best_model.pth")
@@ -454,5 +365,5 @@ def mlp_eval(
         # print best parameters and results
         print(f"{study.best_value=}, {study.best_params=}")
         print(
-            f"| MLP | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
+            f"| MLP regularization : {reg_type} | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
         )

@@ -64,6 +64,7 @@ class GNNTrainer:
         # self.model = self.model.to(self.device)
         # data = data.to(device)
         best_eval = 0
+        best_epoch = 0
         best_val_performance = torch.zeros(3)
         best_test_performance = torch.zeros(3)
 
@@ -96,18 +97,21 @@ class GNNTrainer:
 
                 eval = val_acc + val_f1_m + val_f1_w + test_acc + test_f1_m + test_f1_w
                 if eval > best_eval:
+                    best_epoch = epoch
                     best_eval = eval
 
                     if save_best_model:
                         # Save the model
-                        print(f"Saving the best model under {best_model_name}")
+                        print("Saving on epoch", epoch)
+                        # print(f"Saving the best model under {best_model_name}")
                         torch.save(self.model.state_dict(), best_model_name)
 
                     best_val_performance = torch.tensor([val_acc, val_f1_m, val_f1_w])
-                    best_test_performance = torch.tensor([test_acc, test_f1_m, test_f1_w])
+                    best_test_performance = torch.tensor(
+                        [test_acc, test_f1_m, test_f1_w]
+                    )
 
                 if epoch % log_interval == 0:
-
                     print(f"Epoch: {epoch:03d}:")
                     print(
                         f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Train F1 Macro: {train_f1_m:.4f}, Train F1 Weighted: {train_f1_w:.4f}"
@@ -119,6 +123,10 @@ class GNNTrainer:
                         f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.4f}, Test F1 Macro: {test_f1_m:.4f}, Test F1 Weighted: {test_f1_w:.4f}"
                     )
                     print("#" * 50)
+
+        print("Best result achieved on epoch:", best_epoch)
+        print("Best validation performance:", best_val_performance)
+        print("Best test performance:", best_test_performance)
 
         return best_val_performance, best_test_performance
 

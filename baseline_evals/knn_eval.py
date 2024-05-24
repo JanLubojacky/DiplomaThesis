@@ -67,7 +67,10 @@ def knn_eval(
         )
 
         if select_n_features:
-            n_features = trial.suggest_int("n_features", 100, 5000)
+            max = 5000
+            if max > X.shape[1]:
+                max = X.shape[1]
+            n_features = trial.suggest_int("n_features", 50, max)
 
         accs = np.zeros(n_evals)
         f1_macros = np.zeros(n_evals)

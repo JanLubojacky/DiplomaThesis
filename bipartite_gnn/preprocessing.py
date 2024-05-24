@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 import mrmr
 
-from baseline_evals.feature_selection import variance_filtering
+from baseline_evals.feature_selection import class_variational_selection
 
 
 def ids_to_gene_names(ids, kind):
@@ -70,7 +70,8 @@ def get_interactions(
     interactants2,
     interactant1_colname,
     interactant2_colname,
-    interact_df,
+    interact_file,
+    search_both_cols=False,
 ):
     """
     Given two lists of interactants, return a matrix of interactions between them based on the interactions
@@ -81,19 +82,33 @@ def get_interactions(
         intaractant2_colname (str) : column name for interactant2
         file (str) : path to the database with interactions, it is expected to have
         columns intaractant1_colname and intaractant2_colname where each row is an interaction
+        search_both_cols (bool) :
+            if True, interactants1 and interactant2 are the same thing (gene names) and the
+            interactions csv contains interaction like gene_from_i2, gene_from_i1 but not gene_from_i1, gene_from_i2
+            and we want to catch the interaction no matter the column order
     Returns:
         A (torch.Tensor), shape (len(interactant1), len(interactant2)) : matrix of interactions between interactants
     """
+
+    interact_df = pl.read_csv(interact_file)
 
     if not isinstance(interactants1, list):
         interactants1 = list(interactants1)
     if not isinstance(interactants2, list):
         interactants2 = list(interactants2)
 
-    interact_df = interact_df.filter(
-        pl.col(interactant1_colname).is_in(interactants1)
-        & pl.col(interactant2_colname).is_in(interactants2)
-    )
+    if search_both_cols:
+        interactant_list = interactants1 + interactants2
+
+        interact_df = interact_df.filter(
+            pl.col(interactant1_colname).is_in(interactant_list)
+            & pl.col(interactant2_colname).is_in(interactant_list)
+        )
+    else:
+        interact_df = interact_df.filter(
+            pl.col(interactant1_colname).is_in(interactants1)
+            & pl.col(interactant2_colname).is_in(interactants2)
+        )
 
     A = torch.zeros((len(interactants1), len(interactants2)))
 
@@ -101,13 +116,23 @@ def get_interactions(
     interactant2_idx = interact_df.columns.index(interactant2_colname)
 
     for row in interact_df.iter_rows():
-        A[
-            interactants1.index(row[interactant1_idx]),
-            interactants2.index(row[interactant2_idx]),
-        ] = 1
+        # gene1, gene2
+        try:
+            A[
+                interactants1.index(row[interactant1_idx]),
+                interactants2.index(row[interactant2_idx]),
+            ] = 1
+        # gene2, gene1
+        except ValueError:
+            A[
+                interactants1.index(row[interactant2_idx]),
+                interactants2.index(row[interactant1_idx]),
+            ] = 1
 
     if A.sum() == 0:
-        print("WARNING: No interactions found, are all inputs correct?")
+        raise Warning("WARNING: No interactions found, are all inputs correct?")
+    else:
+        print(f"Found {A.sum()} interactions")
 
     return A
 
@@ -313,7 +338,7 @@ def mrmr_selection(
     X_df, y, train_mask, n_features, n_preselected_features, feature_col_name
 ):
     """
-    Given an polars DataFrame X of shape (n_features, n_samples) and an array y of shape (n_samples, )
+    Given a polars DataFrame X of shape (n_features, n_samples) and an array y of shape (n_samples, )
     Select the top n_features using mrmr feature selection
     """
 
@@ -323,12 +348,16 @@ def mrmr_selection(
     X = X_df[:, 1:].to_numpy().T
 
     if n_preselected_features is not None:
-        select_indices = variance_filtering(X, n_features=n_preselected_features)
+        # select_indices = variance_filtering(X, n_features=n_preselected_features)
+        select_indices = class_variational_selection(
+            X, y, n_features=n_preselected_features
+        )
     else:
         select_indices = np.ones(X.shape[1], dtype=bool)
 
     # preselect features & training samples
     X_train = X[train_mask][:, select_indices]
+    print(X_train.shape)
 
     # createa a dataframe with the selected features
     train_df = pl.DataFrame(X_train)

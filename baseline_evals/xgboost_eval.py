@@ -46,7 +46,8 @@ def xgboost_eval(
     def objective(trial):
         nonlocal best_results
 
-        print(f"{trial.number} / {n_trials}")
+        if verbose:
+            print(f"{trial.number} / {n_trials}")
 
         # sss = StratifiedShuffleSplit(
         #     n_splits=n_evals, test_size=test_size, random_state=random_state
@@ -65,6 +66,9 @@ def xgboost_eval(
             "num_class": len(np.unique(y)),
         }
 
+        # defaults xgboost params
+        # good suspiciton that this is what is usually used
+        # in papers
         params_default = {
             "verbosity": 1,
             "objective": "multi:softmax",
@@ -93,10 +97,20 @@ def xgboost_eval(
         # pruning_callback = optuna.integration.XGBoostPruningCallback(
         #     trial, "validation-mlogloss"
         # )
+        #
+        # params = {
+        #     "booster": "gblinear",
+        #     "lambda": 0.013581694072869377,
+        #     "alpha": 0.03128552626207971,
+        # }
 
         accs = np.zeros(n_evals)
         f1_macros = np.zeros(n_evals)
         f1_scores = np.zeros(n_evals)
+
+        accs_val = np.zeros(n_evals)
+        f1_macros_val = np.zeros(n_evals)
+        f1_scores_val = np.zeros(n_evals)
 
         # Repeated stratified holdout testing
         for i, (train_index, test_index) in enumerate(sss.split(X, y)):
@@ -135,11 +149,19 @@ def xgboost_eval(
                 verbose_eval=False,
             )
 
+            # print(xgbst.get_fscore())
+            # return
+
             y_pred = xgbst.predict(xgb.DMatrix(X_test, label=y_test))
+            y_pred_val = xgbst.predict(xgb.DMatrix(X_val, label=y_val))
 
             accs[i] = accuracy_score(y_test, y_pred)
             f1_macros[i] = f1_score(y_test, y_pred, average="macro")
             f1_scores[i] = f1_score(y_test, y_pred, average="weighted")
+
+            accs_val[i] = accuracy_score(y_val, y_pred_val)
+            f1_macros_val[i] = f1_score(y_val, y_pred_val, average="macro")
+            f1_scores_val[i] = f1_score(y_val, y_pred_val, average="weighted")
 
             # prune trial if it is going really bad after the first half
             if (
@@ -147,16 +169,17 @@ def xgboost_eval(
                 and f1_scores[:i].mean()
                 < best_results["f1_weighted"] - best_results["f1_weighted_std"]
             ):
-                print("Pruning trial")
+                if verbose:
+                    print("Pruning trial")
                 break
 
         mean_f1 = f1_scores.mean()
 
-        print("ACC:", accs)
-        print("F1M:", f1_macros)
-        print("F1W:", f1_scores)
-
         if mean_f1 > best_results["f1_weighted"]:
+            # print("ACC:", accs)
+            # print("F1M:", f1_macros)
+            # print("F1W:", f1_scores)
+
             best_results["acc"] = accs.mean()
             best_results["acc_std"] = accs.std()
             best_results["f1_macro"] = f1_macros.mean()
@@ -164,9 +187,22 @@ def xgboost_eval(
             best_results["f1_weighted"] = f1_scores.mean()
             best_results["f1_weighted_std"] = f1_scores.std()
 
-            print(
-                f"| XGBoost | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
-            )
+            # compute and print val metrics also
+            best_results["acc_val"] = accs_val.mean()
+            best_results["acc_val_std"] = accs_val.std()
+            best_results["f1_macro_val"] = f1_macros_val.mean()
+            best_results["f1_macro_val_std"] = f1_macros_val.std()
+            best_results["f1_weighted_val"] = f1_scores_val.mean()
+            best_results["f1_weighted_val_std"] = f1_scores_val.std()
+
+            if verbose:
+                print(
+                    f" XGBoost val | {best_results['acc_val']:.2f} +/- {best_results['acc_val_std']:.2f} | {best_results['f1_macro_val']:.2f} +/- {best_results['f1_macro_val_std']:.2f} | {best_results['f1_weighted_val']:.2f} +/- {best_results['f1_weighted_val_std']:.2f} |"
+                )
+
+                print(
+                    f"| XGBoost | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
+                )
 
         return mean_f1
 
@@ -176,9 +212,11 @@ def xgboost_eval(
     )
     study.optimize(objective, n_trials=n_trials)
 
-    if verbose:
-        # print the mean f1 score for the best performing parameter
-        print(
-            f"| XGBoost | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
-        )
-        print(f"{study.best_value=}, {study.best_params=}")
+    # if verbose:
+    # print the mean f1 score for the best performing parameter
+    print(
+        f"| XGBoost | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
+    )
+    print(f"{study.best_value=}, {study.best_params=}")
+
+    return best_results

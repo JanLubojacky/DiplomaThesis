@@ -61,7 +61,8 @@ def svm_eval(
     def objective(trial):
         nonlocal best_results
 
-        print(f"Trial {trial.number + 1} / {n_trials}")
+        if verbose:
+            print(f"Trial {trial.number + 1} / {n_trials}")
 
         # sss = StratifiedShuffleSplit(
         #     n_splits=n_evals, test_size=test_size, random_state=random_state
@@ -125,7 +126,8 @@ def svm_eval(
                     warnings.filterwarnings("error", category=ConvergenceWarning)
                     rfe.fit(X_train, y_train)
             except ConvergenceWarning:
-                print("ConvergenceWarning occurred during fitting.")
+                if verbose:
+                    print("ConvergenceWarning occurred during fitting.")
                 break
 
             y_pred = rfe.predict(X_test)
@@ -140,7 +142,8 @@ def svm_eval(
                 and f1_scores[:i].mean()
                 < best_results["f1_weighted"] - best_results["f1_weighted_std"]
             ):
-                print("Pruning trial")
+                if verbose:
+                    print("Pruning trial")
                 break
 
         mean_f1 = f1_scores.mean()
@@ -152,24 +155,24 @@ def svm_eval(
             best_results["f1_macro_std"] = f1_macros.std()
             best_results["f1_weighted"] = f1_scores.mean()
             best_results["f1_weighted_std"] = f1_scores.std()
-            print(
-                f"| SVM | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
-            )
+            if verbose:
+                print(
+                    f"| SVM | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
+                )
 
         return mean_f1
 
     study = optuna.create_study(direction="maximize")
     study.optimize(objective, n_trials=n_trials)
 
-    if verbose:
-        if mode == "linear":
-            header = "LIN SVM"
-        elif mode == "rbf":
-            header = "RBF SVM"
-        # print the mean f1 score for the best performing parameter
-        print(
-            f"| {header} | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
-        )
-        print(f"{study.best_value=}, {study.best_params=}")
+    if mode == "linear":
+        header = "LIN SVM"
+    elif mode == "rbf":
+        header = "RBF SVM"
+    # print the mean f1 score for the best performing parameter
+    print(
+        f"| {header} | {best_results['acc']:.2f} +/- {best_results['acc_std']:.2f} | {best_results['f1_macro']:.2f} +/- {best_results['f1_macro_std']:.2f} | {best_results['f1_weighted']:.2f} +/- {best_results['f1_weighted_std']:.2f} |"
+    )
+    print(f"{study.best_value=}, {study.best_params=}")
 
     return best_results

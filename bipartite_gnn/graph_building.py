@@ -61,9 +61,10 @@ def threshold_matrix(
     self_connections,
     target_avg_degree=None,
     avg_degree_tol=0.5,
-    th_min=0.5,
+    th_min=0.0,
     th_max=1.0,
-    verbose=True,
+    verbose=False,
+    self_loops=True,
 ):
     """
     Given a matrix of cosine similarities, threshold the values to obtain a binary adjacency matrix
@@ -89,7 +90,6 @@ def threshold_matrix(
             A = A - torch.eye(A.shape[0], dtype=torch.float32)
 
         current_degree = A.sum(dim=1).mean()
-        print(th, current_degree)
 
         if target_avg_degree is not None:
             if current_degree > target_avg_degree - avg_degree_tol:
@@ -107,8 +107,11 @@ def threshold_matrix(
             break
 
     if verbose:
+        min_degree = 0
+        if self_loops:
+            min_degree = 1
         print(
-            f"Isolated samples = {(A.sum(dim=1) == 0).sum()}, avg degree = {current_degree}"
+            f"Isolated samples = {(A.sum(dim=1) == min_degree).sum()}, avg degree = {current_degree}"
         )
 
     return A
@@ -153,7 +156,7 @@ def dense_to_attributes(adj_mat):
     return adj_mat[adj_mat != 0].view(-1, 1)
 
 
-def create_diff_exp_connections_norm(X, train_mask=None, multiplier=1.0):
+def create_diff_exp_connections_norm(X, multiplier=1.0):
     """
     This function identifies and categorizes gene expression levels as
     under-expressed (-1), over-expressed (1), or baseline (0) based on standard
@@ -172,12 +175,12 @@ def create_diff_exp_connections_norm(X, train_mask=None, multiplier=1.0):
             indicates the expression category (-1, 0, or 1) for the corresponding
             gene in each sample.
     """
-    # fit the differntial expression model
-    # based on the training mask
-    # mean_exps = X[train_mask].mean(dim=0)
-    # exps_std = X[train_mask].std(dim=0)
+
+    # fit the differential expression model
     mean_exps = X.mean(dim=0)
     exps_std = X.std(dim=0)
+
+    print(mean_exps.shape, exps_std.shape)
 
     lb_exps = mean_exps - exps_std * multiplier
     ub_exps = mean_exps + exps_std * multiplier
