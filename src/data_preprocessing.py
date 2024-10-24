@@ -58,24 +58,25 @@ class MultiOmicDataProcessor:
 class CVSplitManager:
     def __init__(
         self,
+        splits_dir: str,
         n_splits: int = 5,
         test_size: float = 0.2,
         random_state: int = 42,
-        splits_dir: str = "data/splits",
+        normalize: bool = True,
     ):
         self.n_splits = n_splits
         self.test_size = test_size
         self.random_state = random_state
-        self.splits_dir = splits_dir
-        os.makedirs(splits_dir, exist_ok=True)
 
-    def create_splits(self, y: np.ndarray) -> list[dict[str, np.ndarray]]:
+    def create_splits(
+        self, y: np.ndarray
+    ) -> list[dict[str, np.ndarray]]:
         """Create and save stratified CV splits"""
+        os.makedirs(self.splits_dir, exist_ok=True)
 
         skf = StratifiedKFold(
             n_splits=self.n_splits, shuffle=True, random_state=self.random_state
         )
-        splits = []
 
         for fold, (train_val_idx, test_idx) in enumerate(
             skf.split(np.zeros_like(y), y)
@@ -88,21 +89,27 @@ class CVSplitManager:
                 random_state=self.random_state,
             )
 
-            split_dict = {
-                "train_idx": train_idx,
-                "val_idx": val_idx,
-                "test_idx": test_idx,
-            }
-
-            # Save split indices
+            # write as csv into files
             fold_dir = os.path.join(self.splits_dir, f"fold_{fold}")
             os.makedirs(fold_dir, exist_ok=True)
-            for name, indices in split_dict.items():
-                np.save(os.path.join(fold_dir, f"{name}.npy"), indices)
 
-            splits.append(split_dict)
+            # save idxs
+            np.save(os.path.join(fold_dir, "train_idx.npy"), train_idx)
+            np.save(os.path.join(fold_dir, "val_idx.npy"), val_idx)
+            np.save(os.path.join(fold_dir, "test_idx.npy"), test_idx)
 
-        return splits
+    def get_split(self, fold: int) -> dict[str, np.ndarray]:
+        """Load existing split"""
+        fold_dir = os.path.join(self.splits_dir, f"fold_{fold}")
+        if not os.path.exists(fold_dir):
+            raise FileNotFoundError(f"Split directory not found: {fold_dir}")
+
+        split_indices = {}
+        for split_type in ["train_idx", "val_idx", "test_idx"]:
+            path = os.path.join(fold_dir, f"{split_type}.npy")
+            split_indices[split_type] = np.load(path)
+
+        return split_indices
 
     def load_splits(self) -> list[dict[str, np.ndarray]]:
         """Load existing splits"""

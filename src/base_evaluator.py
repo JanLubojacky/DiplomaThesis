@@ -1,4 +1,6 @@
 import logging
+import os
+import polars as pl
 from abc import ABC, abstractmethod
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
@@ -44,18 +46,22 @@ class ModelEvaluator(ABC):
         """Main evaluation loop using pre-created splits"""
         self.logger.info("Starting model evaluation")
 
-        # Load data
+        # Load data here, load the splits
+        # Having a manager that can yield splits is a good idea
         data = self.data_manager.load_data()
         splits = self.cv_manager.load_splits()
+
+        # Running optuna study
 
         def objective(trial):
             fold_scores = []
             for fold_idx, split in enumerate(splits):
                 self.logger.info(f"Evaluating fold {fold_idx + 1}/{len(splits)}")
-                model = self._get_model(trial)
+                model = self.get_model(trial)
 
-                self._train_model(model, data, split["train_idx"])
-                metrics = self._test_model(model, data, split["test_idx"])
+                # Train and test model, pass X and y
+                self.train_model(model, data, split["train_idx"])
+                metrics = self.test_model(model, data, split["test_idx"])
                 fold_scores.append(metrics)
 
             # Aggregate scores across folds
@@ -68,20 +74,22 @@ class ModelEvaluator(ABC):
                 for metric in fold_scores[0].keys()
             }
 
+            # Think about what metric we can use here? Though using F1 is probably fine
             current_score = mean_scores["f1_weighted"]  # Primary metric
 
             # Update best results if current score is better
             if current_score > self.best_results["f1_weighted"]:
                 self.best_results.update(mean_scores)
                 self.best_results.update(std_scores)
+                if self.verbose:
+                    self.print_best_results()
+            self.print_best_results()
+
 
             return current_score
 
         study = optuna.create_study(direction="maximize")
         study.optimize(objective, n_trials=self.n_trials)
-
-        if self.verbose:
-            self._report_results()
 
         return self.best_results
 
@@ -93,7 +101,7 @@ class ModelEvaluator(ABC):
             "f1_weighted": f1_score(y_true, y_pred, average="weighted"),
         }
 
-    def _report_results(self) -> None:
+    def print_best_results(self) -> None:
         """Print evaluation results"""
         self.logger.info("Best model performance:")
         self.logger.info(
@@ -106,20 +114,51 @@ class ModelEvaluator(ABC):
             f"F1 Weighted: {self.best_results['f1_weighted']:.3f} ± {self.best_results['f1_weighted_std']:.3f}"
         )
 
+    def save_results(self, results_file: str, row_name: str) -> None:
+        """
+        Save evaluation results to a CSV file.
+        Creates the file if it doesn't exist, otherwise appends to it.
+
+        Args:
+            results_file: Path to the CSV file
+            row_name: Name identifier for this evaluation row
+        """
+        os.makedirs(os.path.dirname(results_file), exist_ok=True)
+
+        # Prepare the results row
+        results_dict = self.best_results.copy()
+        results_dict["model"] = row_name
+        new_row = pl.DataFrame([results_dict])
+
+        if not os.path.exists(results_file):
+            # Create new file
+            new_row.write_csv(results_file)
+            self.logger.info(f"Results saved to {results_file}")
+            return
+
+        df = pl.read_csv(results_file)
+        if row_name in df["model"].to_list():  # Update existing row
+            df = df.filter(pl.col("model") != row_name)
+            df = pl.concat([df, new_row])
+        else:  # Append new row
+            df = pl.concat([df, new_row])
+        new_row.write_csv(results_file)
+        self.logger.info(f"Results saved to {results_file}")
+
     @abstractmethod
-    def _get_model(self, trial: optuna.Trial):
+    def get_model(self, trial: optuna.Trial):
         """Create and return model instance with trial parameters"""
         pass
 
     @abstractmethod
-    def _train_model(
+    def train_model(
         self, model, data: dict[str, np.ndarray], train_idx: np.ndarray
     ) -> None:
         """Train model implementation"""
         pass
 
     @abstractmethod
-    def _test_model(
+    def test_model(
         self, model, data: dict[str, np.ndarray], test_idx: np.ndarray
     ) -> dict:
         """Test model implementation"""

@@ -322,6 +322,7 @@ name = "diplomageneral"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "gtftools" },
     { name = "ipykernel" },
     { name = "lightning" },
     { name = "matplotlib" },
@@ -341,6 +342,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "gtftools", specifier = ">=0.9.0" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "lightning", specifier = ">=2.4.0" },
     { name = "matplotlib", specifier = ">=3.9.2" },
@@ -469,6 +471,12 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e2/72/576815ba674eddc3c25028238f74d7b8068902b3968cbe456771b166455e/greenlet-3.1.1-cp313-cp313t-musllinux_1_1_aarch64.whl", hash = "sha256:04b013dc07c96f83134b1e99888e7a79979f1a247e2a9f59697fa14b5862ed01", size = 1122731 },
     { url = "https://files.pythonhosted.org/packages/ac/38/08cc303ddddc4b3d7c628c3039a61a3aae36c241ed01393d00c2fd663473/greenlet-3.1.1-cp313-cp313t-musllinux_1_1_x86_64.whl", hash = "sha256:411f015496fec93c1c8cd4e5238da364e1da7a124bcb293f085bf2860c32c6f6", size = 1142112 },
 ]
+
+[[package]]
+name = "gtftools"
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8f/77/fbbc55f06f0803fb96777d03d42539f8429aabb4db7e1de04424ebb2c983/gtftools-0.9.0.tar.gz", hash = "sha256:7dfc0f8ecb8c5d34fee26aa3981c2393cee0419dcf3e51a70d7896c8c393f3fd", size = 3236399 }
 
 [[package]]
 name = "idna"
