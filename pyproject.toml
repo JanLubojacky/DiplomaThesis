@@ -25,3 +25,6 @@ dependencies = [
 
 [tool.pyright]
 typeCheckingMode = "off"
+
+[tool.ruff]
+line-length = 101
