@@ -52,12 +52,11 @@ class ModelEvaluator(ABC):
         splits = self.cv_manager.load_splits()
 
         # Running optuna study
-
         def objective(trial):
             fold_scores = []
             for fold_idx, split in enumerate(splits):
                 self.logger.info(f"Evaluating fold {fold_idx + 1}/{len(splits)}")
-                model = self.get_model(trial)
+                model = self.create_model(trial)
 
                 # Train and test model, pass X and y
                 self.train_model(model, data, split["train_idx"])
@@ -146,7 +145,7 @@ class ModelEvaluator(ABC):
         self.logger.info(f"Results saved to {results_file}")
 
     @abstractmethod
-    def get_model(self, trial: optuna.Trial):
+    def create_model(self, trial: optuna.Trial):
         """Create and return model instance with trial parameters"""
         pass
 

@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
+class OmicsDataLoader:
+    pass
 
 class MultiOmicDataProcessor:
     def __init__(self, data_root: str, omic_types: list[str], process_params: dict):
@@ -46,12 +48,22 @@ class MultiOmicDataProcessor:
             case _:
                 raise ValueError(f"Unknown selection type: {type}")
 
-    def preprocess_data(self, data: np.ndarray, omic_type: str) -> np.ndarray:
+    def standardization(self, data, type: str) -> np.ndarray:
+        """Apply standardization to the data, based on the selected type"""
+        match type:
+            case "normalization":
+                pass
+            case "min_max_scaling":
+                pass
+            case _:
+                raise ValueError(f"Unknown standardization type: {type}")
+
+    def preprocess_data(self, data: np.ndarray, selection_type: str, standardization_type: str) -> np.ndarray:
         """Apply normalization and preprocessing based on omic type"""
-        params = self.process_params.get(omic_type, {})
-        if params.get("standardize", True):
-            scaler = StandardScaler()
-            data = scaler.fit_transform(data)
+
+        data = self.selection(data, selection_type)
+        data = self.standardization(data, standardization_type)
+
         return data
 
 
