@@ -1,140 +1,114 @@
 import os
-import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import StratifiedKFold, train_test_split
 
-class OmicsDataLoader:
+import numpy as np
+import tqdm
+from sklearn.model_selection import StratifiedKFold
+
+
+class OmicDataLoader:
     pass
 
-class MultiOmicDataProcessor:
-    def __init__(self, data_root: str, omic_types: list[str], process_params: dict):
-        self.data_root = data_root
-        self.omic_types = omic_types
-        self.process_params = process_params
-        self.processed_data = {}
-        self._setup_paths()
 
-    def _setup_paths(self) -> None:
-        """Create necessary directories if they don't exist"""
-        for path in ["raw", "splits"]:
-            full_path = os.path.join(self.data_root, path)
-            for omic in self.omic_types:
-                omic_path = os.path.join(full_path, omic)
-                os.makedirs(omic_path, exist_ok=True)
+class OmicDataSplitter:
+    """
+    Given a polars DataFrame, performs cross-validation splits, normalization, and feature selection and saves the results to and output directory.
 
-    def load_data(self) -> dict[str, np.ndarray]:
-        """Load raw or processed data for each omic type"""
-        data = {}
-        for omic in self.omic_types:
-            processed_path = os.path.join(self.data_root, "processed", omic, "data.npy")
-            if os.path.exists(processed_path):
-                data[omic] = np.load(processed_path)
-            else:
-                raw_path = os.path.join(self.data_root, "raw", omic, "data.npy")
-                if not os.path.exists(raw_path):
-                    raise FileNotFoundError(f"No data found for {omic} at {raw_path}")
-                data[omic] = np.load(raw_path)
-                data[omic] = self.preprocess_data(data[omic], omic)
-                np.save(processed_path, data[omic])
-        return data
+    The expected format of the input dataframe is something like:
 
-    def selection(self, data, type: str) -> np.ndarray:
-        """Apply selection to the data, based on the selected type"""
+    | GENE_ID | GENE_NAME | sample1 | sample2 | ... | sampleN |
+    | :-----: | :-------: | :-----: | :-----: | ... | :-----: |
+
+    then annotation_cols would be ['GENE_ID', 'GENE_NAME']
+
+    and y would be a polars series of lenght N where N is the number of samples
+
+    Args:
+        df: polars DataFrame
+        y: polars DataFrame, expected keys are sample_ids and class values
+        annotation_cols: list of column names that contain feature annotations
+        output_dir: output directory
+        n_splits: number of cross-validation splits
+        random_state: random seed
+    """
+
+    def __init__(
+        self,
+        df: pl.DataFrame,
+        y_df: pl.DataFrame,
+        annotation_cols: list,
+        output_dir: str,
+        n_splits: int = 5,
+        random_state: int = 3,
+        verbose: bool = True,
+    ):
+        # create the output directory and the path if it doesnt exist
+        os.makedirs(output_dir, exist_ok=True)
+
+        # make sure that the columns are aligned
+        sample_ids_x = df.columns.remove(annotation_cols)
+        sample_ids_y = y_df["sample_ids"].to_list()
+
+        if not all(sample_ids_x == sample_ids_y):
+            raise ValueError("sample_ids_x and sample_ids_y are not aligned")
+
+        self.df = df
+        self.X = self.df.drop(self.annotation_cols).to_numpy().T
+        self.y_df = y_df
+        self.annotation_cols = annotation_cols
+        self.n_splits = n_splits
+        self.random_state = random_state
+        self.output_dir = output_dir
+
+
+    def normalization(self, X: np.ndarray, type="minmax"):
+        """
+        Args:
+            X (np.ndarray): of shape (n_samples, n_features)
+            type (str): minmax or standardization
+        """
+        #TODO make this modifications to the dataframe instead
+        match type:
+            case "minmax":
+                return (X - X.min(axis=1)) / (X.max(axis=1) - X.min(axis=1))
+            case "standardization":
+                return (X - X.mean(axis=1)) / X.std(axis=1)
+            case _:
+                raise ValueError("type must be either 'minmax' or 'standardization'")
+
+
+    def feature_selection(self, X: np.ndarray, y: np.ndarray, type = "variance"):
+        #TODO this must be modifications to the dataframe too
         match type:
             case "variance":
                 pass
             case "mrmr":
                 pass
             case _:
-                raise ValueError(f"Unknown selection type: {type}")
+                raise ValueError("type must be either 'variance' or 'mrmr'")
 
-    def standardization(self, data, type: str) -> np.ndarray:
-        """Apply standardization to the data, based on the selected type"""
-        match type:
-            case "normalization":
-                pass
-            case "min_max_scaling":
-                pass
-            case _:
-                raise ValueError(f"Unknown standardization type: {type}")
+    def process_data(self):
+        """
+        Process the data and save it to the output directory
+        """
 
-    def preprocess_data(self, data: np.ndarray, selection_type: str, standardization_type: str) -> np.ndarray:
-        """Apply normalization and preprocessing based on omic type"""
+        skf = StratifiedKFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
+        y = self.y_df["class"].to_numpy()
 
-        data = self.selection(data, selection_type)
-        data = self.standardization(data, standardization_type)
-
-        return data
-
-
-class CVSplitManager:
-    def __init__(
-        self,
-        splits_dir: str,
-        n_splits: int = 5,
-        test_size: float = 0.2,
-        random_state: int = 42,
-        normalize: bool = True,
-    ):
-        self.n_splits = n_splits
-        self.test_size = test_size
-        self.random_state = random_state
-
-    def create_splits(
-        self, y: np.ndarray
-    ) -> list[dict[str, np.ndarray]]:
-        """Create and save stratified CV splits"""
-        os.makedirs(self.splits_dir, exist_ok=True)
-
-        skf = StratifiedKFold(
-            n_splits=self.n_splits, shuffle=True, random_state=self.random_state
-        )
-
-        for fold, (train_val_idx, test_idx) in enumerate(
-            skf.split(np.zeros_like(y), y)
+        for i, train_index, test_index in tqdm(
+            enumerate(skf.split(np.zeros(y.shape), y)),
+            total=self.n_splits,
+            desc="Processing folds",
+            unit="fold",
         ):
-            # Further split train_val into train and validation
-            train_idx, val_idx = train_test_split(
-                train_val_idx,
-                test_size=self.test_size,
-                stratify=y[train_val_idx],
-                random_state=self.random_state,
-            )
+            fold_iterator.set_description(f"Processing fold {i+1}/{self.n_splits}")
 
-            # write as csv into files
-            fold_dir = os.path.join(self.splits_dir, f"fold_{fold}")
-            os.makedirs(fold_dir, exist_ok=True)
+            # train test split
+            print(train_index)
+            print(test_index)
 
-            # save idxs
-            np.save(os.path.join(fold_dir, "train_idx.npy"), train_idx)
-            np.save(os.path.join(fold_dir, "val_idx.npy"), val_idx)
-            np.save(os.path.join(fold_dir, "test_idx.npy"), test_idx)
+            # normalization
+            X = self.normalization(X)
 
-    def get_split(self, fold: int) -> dict[str, np.ndarray]:
-        """Load existing split"""
-        fold_dir = os.path.join(self.splits_dir, f"fold_{fold}")
-        if not os.path.exists(fold_dir):
-            raise FileNotFoundError(f"Split directory not found: {fold_dir}")
+            # feature selection
 
-        split_indices = {}
-        for split_type in ["train_idx", "val_idx", "test_idx"]:
-            path = os.path.join(fold_dir, f"{split_type}.npy")
-            split_indices[split_type] = np.load(path)
-
-        return split_indices
-
-    def load_splits(self) -> list[dict[str, np.ndarray]]:
-        """Load existing splits"""
-        splits = []
-        for fold in range(self.n_splits):
-            fold_dir = os.path.join(self.splits_dir, f"fold_{fold}")
-            if not os.path.exists(fold_dir):
-                raise FileNotFoundError(f"Split directory not found: {fold_dir}")
-
-            split_dict = {}
-            for split_type in ["train_idx", "val_idx", "test_idx"]:
-                path = os.path.join(fold_dir, f"{split_type}.npy")
-                split_dict[split_type] = np.load(path)
-            splits.append(split_dict)
-
-        return splits
+            # write to output directory

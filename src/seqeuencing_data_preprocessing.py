@@ -79,7 +79,9 @@ def preprocess_seq_data(
 
     # Log2 transform
     if log_transform:
-        processed_df = processed_df.with_columns([(pl.all().exclude(*annotation_cols) + 1).log(base=2)])
+        processed_df = processed_df.with_columns(
+            [(pl.all().exclude(*annotation_cols) + 1).log(base=2)]
+        )
 
     # Save to file if path is provided
     if output_path:

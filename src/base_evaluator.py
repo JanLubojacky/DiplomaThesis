@@ -1,12 +1,13 @@
 import logging
 import os
-import polars as pl
 from abc import ABC, abstractmethod
-import numpy as np
-from sklearn.metrics import accuracy_score, f1_score
-import optuna
 
-from src.data_preprocessing import MultiOmicDataManager, CVSplitManager
+import numpy as np
+import optuna
+import polars as pl
+from sklearn.metrics import accuracy_score, f1_score
+
+from src.data_preprocessing import CVSplitManager, MultiOmicDataManager
 
 
 class ModelEvaluator(ABC):
@@ -84,7 +85,6 @@ class ModelEvaluator(ABC):
                     self.print_best_results()
             self.print_best_results()
 
-
             return current_score
 
         study = optuna.create_study(direction="maximize")
@@ -150,15 +150,11 @@ class ModelEvaluator(ABC):
         pass
 
     @abstractmethod
-    def train_model(
-        self, model, data: dict[str, np.ndarray], train_idx: np.ndarray
-    ) -> None:
+    def train_model(self, model, data: dict[str, np.ndarray], train_idx: np.ndarray) -> None:
         """Train model implementation"""
         pass
 
     @abstractmethod
-    def test_model(
-        self, model, data: dict[str, np.ndarray], test_idx: np.ndarray
-    ) -> dict:
+    def test_model(self, model, data: dict[str, np.ndarray], test_idx: np.ndarray) -> dict:
         """Test model implementation"""
         pass
