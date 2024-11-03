@@ -5,3 +5,4 @@
 - Could add one more task for mutations
   - SPL (splicing), EPI (epigenetic), WT (wild type), CTR (control)
 - Could encode the strand as an additional feature, might be especially useful for feature based gnns where each node is a feature
+- Fix up the mRMR package packaging
