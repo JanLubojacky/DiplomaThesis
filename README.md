@@ -6,3 +6,7 @@
   - SPL (splicing), EPI (epigenetic), WT (wild type), CTR (control)
 - Could encode the strand as an additional feature, might be especially useful for feature based gnns where each node is a feature
 - Fix up the mRMR package packaging
+  - polars broken
+  - no checks for whether y is the same length as X
+  - no checks for duplicate column names -> results in a long computation and eventually a pandas crash
+  - apparently no cicd to update the pkg on pypi

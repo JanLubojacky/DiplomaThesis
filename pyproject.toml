@@ -22,6 +22,7 @@ dependencies = [
     "pyarrow>=17.0.0",
     "gtftools>=0.9.0",
     "fastexcel>=0.12.0",
+    "pandas>=2.2.3",
 ]
 
 [tool.pyright]

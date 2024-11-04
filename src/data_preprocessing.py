@@ -1,7 +1,10 @@
 import os
-
+import polars as pl
+import pandas as pd
 import numpy as np
-import tqdm
+from tqdm import tqdm
+from mrmr import mrmr_classif
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import StratifiedKFold
 
 
@@ -28,6 +31,7 @@ class OmicDataSplitter:
         annotation_cols: list of column names that contain feature annotations
         output_dir: output directory
         n_splits: number of cross-validation splits
+        n_features: number of features to select during feature selection
         random_state: random seed
     """
 
@@ -38,53 +42,79 @@ class OmicDataSplitter:
         annotation_cols: list,
         output_dir: str,
         n_splits: int = 5,
+        n_features: int = 100,
         random_state: int = 3,
         verbose: bool = True,
     ):
         # create the output directory and the path if it doesnt exist
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(os.path.join(output_dir, "train"), exist_ok=True)
+        os.makedirs(os.path.join(output_dir, "test"), exist_ok=True)
 
         # make sure that the columns are aligned
-        sample_ids_x = df.columns.remove(annotation_cols)
+        sample_ids_x = df.columns
+        for annotation_col in annotation_cols:
+            sample_ids_x.remove(annotation_col)
         sample_ids_y = y_df["sample_ids"].to_list()
-
-        if not all(sample_ids_x == sample_ids_y):
+        if not sample_ids_x == sample_ids_y:
             raise ValueError("sample_ids_x and sample_ids_y are not aligned")
 
         self.df = df
-        self.X = self.df.drop(self.annotation_cols).to_numpy().T
+        self.X = self.df.drop(annotation_cols).to_numpy().T
         self.y_df = y_df
+        self.n_features = n_features
         self.annotation_cols = annotation_cols
         self.n_splits = n_splits
         self.random_state = random_state
         self.output_dir = output_dir
+        self.feature_names = df[annotation_cols[0]].to_list()
 
-
-    def normalization(self, X: np.ndarray, type="minmax"):
+    def normalization(self, X_train: np.ndarray, X_test: np.ndarray, type="minmax"):
         """
         Args:
             X (np.ndarray): of shape (n_samples, n_features)
             type (str): minmax or standardization
         """
-        #TODO make this modifications to the dataframe instead
+        # TODO make this modifications to the dataframe instead
         match type:
             case "minmax":
-                return (X - X.min(axis=1)) / (X.max(axis=1) - X.min(axis=1))
+                scaler = MinMaxScaler()
             case "standardization":
-                return (X - X.mean(axis=1)) / X.std(axis=1)
+                scaler = StandardScaler()
             case _:
                 raise ValueError("type must be either 'minmax' or 'standardization'")
 
+        X_train = scaler.fit_transform(X_train)
+        X_test = scaler.transform(X_test)
 
-    def feature_selection(self, X: np.ndarray, y: np.ndarray, type = "variance"):
-        #TODO this must be modifications to the dataframe too
+        return X_train, X_test
+
+    def feature_selection(
+        self, X_train: np.ndarray, X_test: np.ndarray, y: np.ndarray, type="mrmr"
+    ) -> (np.ndarray, list):
+        """
+        Args:
+            df (pl.DataFrame): polars DataFrame with the inputs and the samples
+            X_train (np.ndarray): of shape (n_samples, n_features)
+            X_test (np.ndarray): of shape (n_samples, n_features)
+            y (np.ndarray): of shape (n_samples,)
+            type (str): variance or mrmr
+        """
         match type:
             case "variance":
-                pass
+                raise NotImplementedError()
             case "mrmr":
-                pass
+                # convert the dataframes to pandas for use with mrmr
+                train_df = pd.DataFrame(X_train, columns=self.feature_names)
+                class_df = pd.Series(y, name="class")
+                selected_features = mrmr_classif(train_df, class_df, K=self.n_features)
+
+                # construct polars dataframes with the selected features
+                train_df = pl.DataFrame(train_df).select(selected_features)
+                test_df = pl.DataFrame(X_test, schema=self.feature_names).select(selected_features)
             case _:
                 raise ValueError("type must be either 'variance' or 'mrmr'")
+
+        return train_df, test_df
 
     def process_data(self):
         """
@@ -94,21 +124,32 @@ class OmicDataSplitter:
         skf = StratifiedKFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
         y = self.y_df["class"].to_numpy()
 
-        for i, train_index, test_index in tqdm(
+        for i, (train_index, test_index) in tqdm(
             enumerate(skf.split(np.zeros(y.shape), y)),
             total=self.n_splits,
             desc="Processing folds",
             unit="fold",
         ):
-            fold_iterator.set_description(f"Processing fold {i+1}/{self.n_splits}")
-
             # train test split
-            print(train_index)
-            print(test_index)
+            X_train, X_test = self.X[train_index], self.X[test_index]
+            y_train, y_test = y[train_index], y[test_index]
 
             # normalization
-            X = self.normalization(X)
+            X_train, X_test = self.normalization(X_train, X_test)
 
             # feature selection
+            train_df, test_df = self.feature_selection(X_train, X_test, y_train)
+
+            # add the samples names and the classes as columns
+            train_df = train_df.with_columns(
+                pl.Series("sample_ids", self.y_df["sample_ids"].to_numpy()[train_index])
+            )
+            train_df = train_df.with_columns(pl.Series("class", y_train))
+            test_df = test_df.with_columns(
+                pl.Series("sample_ids", self.y_df["sample_ids"].to_numpy()[test_index])
+            )
+            test_df = test_df.with_columns(pl.Series("class", y_test))
 
             # write to output directory
+            train_df.write_csv(os.path.join(self.output_dir, "train", f"train_{i}.csv"))
+            test_df.write_csv(os.path.join(self.output_dir, "test", f"test_{i}.csv"))
