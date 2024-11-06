@@ -1,3 +1,4 @@
+import os
 import polars as pl
 from abc import ABC, abstractmethod
 
@@ -38,22 +39,31 @@ class OmicDataLoader(ABC):
     ):
         self.data_dir = data_dir
         self.n_splits = n_splits
+        self.train_files = None
+        self.test_files = None
 
-        self.load_data()
+        self.index_data()
 
-    @abstractmethod
-    def load_data(self) -> pl.DataFrame:
+    def index_data(self) -> pl.DataFrame:
         """
-        Load data on creation
+        Index data on creation
         """
-        ...
+        self.train_files = os.listdir(os.path.join(self.data_dir, "train"))
+        self.test_files = os.listdir(os.path.join(self.data_dir, "test"))
 
-    @abstractmethod
-    def get_split(self, fold_idx: int):
+        if len(self.train_files) != self.n_splits:
+            raise ValueError("Number of train files is not equal to n_splits")
+        if len(self.test_files) != self.n_splits:
+            raise ValueError("Number of test files is not equal to n_splits")
+
+    def get_fold(self, fold_idx: int):
         """
-        Given an index retrieve the split
+        Given an index retrieve the train and test dataframe for that fold
         """
-        ...
+        train_df = pl.read_csv(os.path.join(self.data_dir, "train", self.train_files[fold_idx]))
+        test_df = pl.read_csv(os.path.join(self.data_dir, "test", self.test_files[fold_idx]))
+
+        return train_df, test_df
 
 
 class OmicDataManager(ABC):
@@ -66,9 +76,18 @@ class OmicDataManager(ABC):
         self.omic_data_loaders = omic_data_loaders
         self.n_splits = n_splits
 
+    def load_split(self, fold_idx: int):
+        omic_data = {}
+        for key, omic_data_loader in self.omic_data_loaders.items():
+            train_df, test_df = omic_data_loader.get_fold(fold_idx)
+            omic_data[key] = {
+                "train_df": train_df,
+                "test_df": test_df,
+            }
+
     @abstractmethod
     def get_split(self, fold_idx: int):
         """
-        Given an index retrieve the split
+        Given an index of a fold compose a data format expected by the model
         """
         ...
