@@ -13,13 +13,9 @@ from src.data_preprocessing import CVSplitManager, MultiOmicDataManager
 class ModelEvaluator(ABC):
     def __init__(
         self,
-        data_manager: MultiOmicDataManager,
-        cv_manager: CVSplitManager,
         n_trials: int = 30,
         verbose: bool = True,
     ):
-        self.data_manager = data_manager
-        self.cv_manager = cv_manager
         self.n_trials = n_trials
         self.verbose = verbose
         self.logger = self._setup_logger()

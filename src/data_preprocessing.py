@@ -1,3 +1,13 @@
+"""
+This is used for splitting an omic dataset into folds
+the folds are preprocessed and saved to the output directory
+
+The preprocessing includes:
+    - split into train and test
+    - normalize
+    - select features
+"""
+
 import os
 import polars as pl
 import pandas as pd
@@ -6,10 +16,6 @@ from tqdm import tqdm
 from mrmr import mrmr_classif
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import StratifiedKFold
-
-
-class OmicDataLoader:
-    pass
 
 
 class OmicDataSplitter:
