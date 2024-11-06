@@ -75,15 +75,44 @@ class OmicDataManager(ABC):
     def __init__(self, omic_data_loaders: dict[str, OmicDataLoader], n_splits: int = 5):
         self.omic_data_loaders = omic_data_loaders
         self.n_splits = n_splits
+        self.sample_ids = None
+        self.train_y = None
+        self.test_y = None
 
-    def load_split(self, fold_idx: int):
+    def load_split(self, fold_idx: int) -> dict[str, dict[str, pl.DataFrame]]:
         omic_data = {}
-        for key, omic_data_loader in self.omic_data_loaders.items():
+        for omic, omic_data_loader in self.omic_data_loaders.items():
             train_df, test_df = omic_data_loader.get_fold(fold_idx)
-            omic_data[key] = {
+            omic_data[omic] = {
                 "train_df": train_df,
                 "test_df": test_df,
+                "sample_column": omic_data_loader.sample_column,
+                "class_column": omic_data_loader.class_column,
             }
+
+        return omic_data
+
+    def load_classes(self, train_df: pl.DataFrame, test_df: pl.DataFrame, sample_column: str, class_column: str):
+        """
+        Given a train_df a test_df and the names of the sample and class columns
+        populates the train_y and test_y attributes and ensures that they are matching
+        """
+        # load the first sample_ids found
+        if self.sample_ids is None:
+            self.sample_ids = train_df[sample_column].to_numpy()
+        else:
+            sample_ids = train_df[sample_column].to_numpy()
+            if not (sample_ids == self.sample_ids).all():
+                raise ValueError("Sample ids are not matching")
+
+        if self.train_y is None and self.test_y is None:
+            self.train_y = train_df[class_column].to_numpy()
+            self.test_y = test_df[class_column].to_numpy()
+        else:
+            if not (self.train_y == train_df["class"].to_numpy()).all():
+                raise ValueError("Train y are not matching")
+            if not (self.test_y == test_df["class"].to_numpy()).all():
+                raise ValueError("Test y are not matching")
 
     @abstractmethod
     def get_split(self, fold_idx: int):
