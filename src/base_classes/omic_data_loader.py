@@ -41,6 +41,8 @@ class OmicDataLoader(ABC):
         self.n_splits = n_splits
         self.train_files = None
         self.test_files = None
+        self.sample_column = sample_column
+        self.class_column = class_column
 
         self.index_data()
 
@@ -50,6 +52,12 @@ class OmicDataLoader(ABC):
         """
         self.train_files = os.listdir(os.path.join(self.data_dir, "train"))
         self.test_files = os.listdir(os.path.join(self.data_dir, "test"))
+        self.train_files.sort()
+        self.test_files.sort()
+
+        print("files")
+        print(self.train_files)
+        print(self.test_files)
 
         if len(self.train_files) != self.n_splits:
             raise ValueError("Number of train files is not equal to n_splits")
@@ -113,6 +121,14 @@ class OmicDataManager(ABC):
                 raise ValueError("Train y are not matching")
             if not (self.test_y == test_df["class"].to_numpy()).all():
                 raise ValueError("Test y are not matching")
+
+    def reset_attributes(self):
+        """
+        Clear the train_y and test_y attributes, this has to be called after each fold
+        """
+        self.sample_ids = None
+        self.train_y = None
+        self.test_y = None
 
     @abstractmethod
     def get_split(self, fold_idx: int):

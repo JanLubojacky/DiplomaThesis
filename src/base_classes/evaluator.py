@@ -1,4 +1,3 @@
-import logging
 import os
 from abc import ABC, abstractmethod
 
@@ -7,18 +6,18 @@ import optuna
 import polars as pl
 from sklearn.metrics import accuracy_score, f1_score
 
-from src.data_preprocessing import CVSplitManager, MultiOmicDataManager
-
+from src.base_classes.omic_data_manager import OmicDataManager
 
 class ModelEvaluator(ABC):
     def __init__(
         self,
+        data_manager: OmicDataManager,
         n_trials: int = 30,
         verbose: bool = True,
     ):
         self.n_trials = n_trials
         self.verbose = verbose
-        self.logger = self._setup_logger()
+        self.data_manager = data_manager
         self.best_results = {
             "acc": 0.0,
             "f1_macro": 0.0,
@@ -28,36 +27,24 @@ class ModelEvaluator(ABC):
             "f1_weighted_std": 0.0,
         }
 
-    def _setup_logger(self) -> logging.Logger:
-        """Setup logging for the evaluator"""
-        logger = logging.getLogger(self.__class__.__name__)
-        logger.setLevel(logging.INFO if self.verbose else logging.WARNING)
-        if not logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-        return logger
-
     def evaluate(self, param_space: dict) -> dict:
         """Main evaluation loop using pre-created splits"""
-        self.logger.info("Starting model evaluation")
 
-        # Load data here, load the splits
-        # Having a manager that can yield splits is a good idea
-        data = self.data_manager.load_data()
-        splits = self.cv_manager.load_splits()
 
         # Running optuna study
         def objective(trial):
             fold_scores = []
-            for fold_idx, split in enumerate(splits):
-                self.logger.info(f"Evaluating fold {fold_idx + 1}/{len(splits)}")
+            for fold_idx in range(self.data_manager.n_splits):
+                # Get train and test splits
+                train_x, test_x, train_y, test_y = self.data_manager.get_split(
+                    fold_idx
+                )
+
                 model = self.create_model(trial)
 
                 # Train and test model, pass X and y
-                self.train_model(model, data, split["train_idx"])
-                metrics = self.test_model(model, data, split["test_idx"])
+                self.train_model(model, train_x, train_y)
+                metrics = self.test_model(model, test_x, test_y)
                 fold_scores.append(metrics)
 
             # Aggregate scores across folds
@@ -98,14 +85,14 @@ class ModelEvaluator(ABC):
 
     def print_best_results(self) -> None:
         """Print evaluation results"""
-        self.logger.info("Best model performance:")
-        self.logger.info(
+        print("Best model performance:")
+        print(
             f"Accuracy: {self.best_results['acc']:.3f} ± {self.best_results['acc_std']:.3f}"
         )
-        self.logger.info(
+        print(
             f"F1 Macro: {self.best_results['f1_macro']:.3f} ± {self.best_results['f1_macro_std']:.3f}"
         )
-        self.logger.info(
+        print(
             f"F1 Weighted: {self.best_results['f1_weighted']:.3f} ± {self.best_results['f1_weighted_std']:.3f}"
         )
 
@@ -128,7 +115,7 @@ class ModelEvaluator(ABC):
         if not os.path.exists(results_file):
             # Create new file
             new_row.write_csv(results_file)
-            self.logger.info(f"Results saved to {results_file}")
+            print(f"Results saved to {results_file}")
             return
 
         df = pl.read_csv(results_file)
@@ -138,7 +125,6 @@ class ModelEvaluator(ABC):
         else:  # Append new row
             df = pl.concat([df, new_row])
         new_row.write_csv(results_file)
-        self.logger.info(f"Results saved to {results_file}")
 
     @abstractmethod
     def create_model(self, trial: optuna.Trial):
@@ -146,11 +132,11 @@ class ModelEvaluator(ABC):
         pass
 
     @abstractmethod
-    def train_model(self, model, data: dict[str, np.ndarray], train_idx: np.ndarray) -> None:
+    def train_model(self, model, train_x, train_y) -> None:
         """Train model implementation"""
         pass
 
     @abstractmethod
-    def test_model(self, model, data: dict[str, np.ndarray], test_idx: np.ndarray) -> dict:
+    def test_model(self, model, test_x, test_y) -> dict:
         """Test model implementation"""
         pass

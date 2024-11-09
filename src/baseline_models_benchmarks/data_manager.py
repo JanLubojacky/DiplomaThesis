@@ -24,15 +24,23 @@ class CatOmicDataManager(OmicDataManager):
         for omic in omic_data:
             train_df = omic_data[omic]["train_df"]
             test_df = omic_data[omic]["test_df"]
-            self.load_classes(train_df, test_df, omic.sample_column, omic.class_column)
+            sample_column = omic_data[omic]["sample_column"]
+            class_column = omic_data[omic]["class_column"]
 
-            train_df = train_df.drop(omic.class_column, omic.sample_column)
-            test_df = test_df.drop(omic.class_column, omic.sample_column)
+            self.load_classes(train_df, test_df, sample_column, class_column)
 
-            train_x.append(train_df.to_numpy())
-            test_x.append(test_df.to_numpy())
+            train_df = train_df.drop(class_column, sample_column)
+            test_df = test_df.drop(class_column, sample_column)
 
-        train_x = pl.concat(train_x)
-        test_x = pl.concat(test_x)
+            train_x.append(train_df)
+            test_x.append(test_df)
 
-        return train_x, test_x, self.train_y, self.test_y
+        train_x = pl.concat(train_x, how="horizontal")
+        test_x = pl.concat(test_x, how="horizontal")
+
+        train_y = self.train_y
+        test_y = self.test_y
+
+        self.reset_attributes()
+
+        return train_x, test_x, train_y, test_y
