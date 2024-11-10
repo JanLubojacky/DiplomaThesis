@@ -6,7 +6,29 @@ import optuna
 import polars as pl
 from sklearn.metrics import accuracy_score, f1_score
 
-from src.base_classes.omic_data_manager import OmicDataManager
+from src.base_classes.omic_data_loader import OmicDataManager
+
+
+def is_strictly_better(metrics1: dict, metrics2: dict) -> bool:
+    """
+    Returns:
+        True if metrics2 is strictly better than metrics1
+        False otherwise
+    """
+
+    # Split metrics and their standard deviations
+    base_metrics = ["acc", "f1_macro", "f1_weighted"]
+
+    # Check if any performance metric is worse (lower) in metrics2
+    for metric in base_metrics:
+        if metrics2[metric] < metrics1[metric]:
+            return False
+
+    # Check if at least one metric is strictly better
+    is_any_better = any(metrics2[metric] > metrics1[metric] for metric in base_metrics)
+
+    return is_any_better
+
 
 class ModelEvaluator(ABC):
     def __init__(
@@ -27,24 +49,22 @@ class ModelEvaluator(ABC):
             "f1_weighted_std": 0.0,
         }
 
-    def evaluate(self, param_space: dict) -> dict:
+    def evaluate(self) -> dict:
         """Main evaluation loop using pre-created splits"""
-
 
         # Running optuna study
         def objective(trial):
             fold_scores = []
             for fold_idx in range(self.data_manager.n_splits):
                 # Get train and test splits
-                train_x, test_x, train_y, test_y = self.data_manager.get_split(
-                    fold_idx
-                )
+                train_x, test_x, train_y, test_y = self.data_manager.get_split(fold_idx)
 
-                model = self.create_model(trial)
+                # Creates model and saves it as a class attribute
+                self.create_model(trial)
 
                 # Train and test model, pass X and y
-                self.train_model(model, train_x, train_y)
-                metrics = self.test_model(model, test_x, test_y)
+                self.train_model(train_x, train_y)
+                metrics = self.test_model(test_x, test_y)
                 fold_scores.append(metrics)
 
             # Aggregate scores across folds
@@ -57,21 +77,23 @@ class ModelEvaluator(ABC):
                 for metric in fold_scores[0].keys()
             }
 
-            # Think about what metric we can use here? Though using F1 is probably fine
-            current_score = mean_scores["f1_weighted"]  # Primary metric
+            current_score = mean_scores["acc"] * mean_scores["f1_macro"] * mean_scores["f1_weighted"]
 
-            # Update best results if current score is better
-            if current_score > self.best_results["f1_weighted"]:
+            # Update best results if current score is strictly better
+            if is_strictly_better(self.best_results, mean_scores):
                 self.best_results.update(mean_scores)
                 self.best_results.update(std_scores)
                 if self.verbose:
+                    print(f"New best score: {current_score:.3f}")
                     self.print_best_results()
-            self.print_best_results()
 
             return current_score
 
         study = optuna.create_study(direction="maximize")
         study.optimize(objective, n_trials=self.n_trials)
+
+        print("Best hyperparameters:")
+        print(study.best_params)
 
         return self.best_results
 
@@ -86,9 +108,7 @@ class ModelEvaluator(ABC):
     def print_best_results(self) -> None:
         """Print evaluation results"""
         print("Best model performance:")
-        print(
-            f"Accuracy: {self.best_results['acc']:.3f} ± {self.best_results['acc_std']:.3f}"
-        )
+        print(f"Accuracy: {self.best_results['acc']:.3f} ± {self.best_results['acc_std']:.3f}")
         print(
             f"F1 Macro: {self.best_results['f1_macro']:.3f} ± {self.best_results['f1_macro_std']:.3f}"
         )
@@ -124,19 +144,19 @@ class ModelEvaluator(ABC):
             df = pl.concat([df, new_row])
         else:  # Append new row
             df = pl.concat([df, new_row])
-        new_row.write_csv(results_file)
+        df.write_csv(results_file)
 
     @abstractmethod
     def create_model(self, trial: optuna.Trial):
-        """Create and return model instance with trial parameters"""
+        """Create and safe model instance with trial parameters"""
         pass
 
     @abstractmethod
-    def train_model(self, model, train_x, train_y) -> None:
+    def train_model(self, train_x, train_y) -> None:
         """Train model implementation"""
         pass
 
     @abstractmethod
-    def test_model(self, model, test_x, test_y) -> dict:
+    def test_model(self, test_x, test_y) -> dict:
         """Test model implementation"""
         pass

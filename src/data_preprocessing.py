@@ -9,13 +9,14 @@ The preprocessing includes:
 """
 
 import os
-import polars as pl
-import pandas as pd
+
 import numpy as np
-from tqdm import tqdm
+import pandas as pd
+import polars as pl
 from mrmr import mrmr_classif
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from tqdm import tqdm
 
 
 class OmicDataSplitter:

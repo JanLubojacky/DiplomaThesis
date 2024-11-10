@@ -1,6 +1,7 @@
 import os
-import polars as pl
 from abc import ABC, abstractmethod
+
+import polars as pl
 
 
 class OmicDataLoader(ABC):
@@ -100,7 +101,9 @@ class OmicDataManager(ABC):
 
         return omic_data
 
-    def load_classes(self, train_df: pl.DataFrame, test_df: pl.DataFrame, sample_column: str, class_column: str):
+    def load_classes(
+        self, train_df: pl.DataFrame, test_df: pl.DataFrame, sample_column: str, class_column: str
+    ):
         """
         Given a train_df a test_df and the names of the sample and class columns
         populates the train_y and test_y attributes and ensures that they are matching
