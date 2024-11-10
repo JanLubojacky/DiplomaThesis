@@ -1,9 +1,14 @@
-import numpy as np
-import polars as pl
+import torch
 import torch_geometric as pyg
 
 from src.base_classes.omic_data_loader import OmicDataLoader, OmicDataManager
-from src.gnn_utils.graph_building import cosine_similarity_matrix, threshold_matrix, dense_to_coo
+from src.gnn_utils.graph_building import (
+    cosine_similarity_matrix,
+    threshold_matrix,
+    dense_to_coo,
+    keep_n_neighbours,
+)
+
 
 class SampleGNNDataManager(OmicDataManager):
     """
@@ -16,7 +21,6 @@ class SampleGNNDataManager(OmicDataManager):
         super().__init__(omic_data_loaders, n_splits)
         self.params = params
 
-
     def get_split(self, fold_idx: int):
         """
         Given a fold_idx returns train_x, test_x, train_y, test_y where
@@ -25,7 +29,7 @@ class SampleGNNDataManager(OmicDataManager):
 
         omic_data = self.load_split(fold_idx)
 
-        #TODO REMOVE THIS
+        # TODO REMOVE THIS
         for omic in omic_data:
             train_df = omic_data[omic]["train_df"]
             test_df = omic_data[omic]["test_df"]
@@ -40,8 +44,9 @@ class SampleGNNDataManager(OmicDataManager):
 
         data = pyg.data.HeteroData()
 
-        for omic in omic_data:
+        omics: dict[str, torch.Tensor] = {}
 
+        for omic in omic_data:
             A_cos_sim = cosine_similarity_matrix(omics[omic])
 
             if self.params["graph_style"] == "threshold":
@@ -62,7 +67,7 @@ class SampleGNNDataManager(OmicDataManager):
             data[omic].x = omics[omic]
             data[omic].edge_index = dense_to_coo(A)
 
-        data.y = torch.tensor(y)
+        # data.y = torch.tensor(y)
 
         train_y = self.train_y
         test_y = self.test_y
@@ -70,4 +75,3 @@ class SampleGNNDataManager(OmicDataManager):
         self.reset_attributes()
 
         # return train_x, test_x, train_y, test_y
-

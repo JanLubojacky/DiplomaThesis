@@ -18,7 +18,6 @@ class CatOmicDataManager(OmicDataManager):
         self.feature_dim = train_x.shape[1]
         self.n_classes = np.unique(train_y).shape[0]
 
-
     def get_split(self, fold_idx: int):
         """
         Given a fold_idx returns train_x, test_x, train_y, test_y where

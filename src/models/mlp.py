@@ -8,7 +8,6 @@ import logging
 logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
 
 
-
 class MLPModel(torch.nn.Module):
     def __init__(self, input_sz, num_classes, proj_dim, hidden_channels, dropout):
         super().__init__()
