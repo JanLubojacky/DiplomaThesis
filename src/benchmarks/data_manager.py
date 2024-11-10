@@ -1,3 +1,4 @@
+import numpy as np
 import polars as pl
 
 from src.base_classes.omic_data_loader import OmicDataLoader, OmicDataManager
@@ -12,6 +13,11 @@ class CatOmicDataManager(OmicDataManager):
 
     def __init__(self, omic_data_loaders: dict[str, OmicDataLoader], n_splits: int = 5):
         super().__init__(omic_data_loaders, n_splits)
+
+        train_x, _, train_y, _ = self.get_split(0)
+        self.feature_dim = train_x.shape[1]
+        self.n_classes = np.unique(train_y).shape[0]
+
 
     def get_split(self, fold_idx: int):
         """

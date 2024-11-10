@@ -11,3 +11,5 @@ wheels/
 
 # MacOS shit
 .DS_Store
+
+lightning_logs/

@@ -38,7 +38,12 @@ class MLPLightningModule(L.LightningModule):
         x, y = batch
         x = x.view(x.size(0), -1)
         y_pred = self.net(x)
-        return F.cross_entropy(y_pred, y)
+
+        loss = F.cross_entropy(y_pred, y)
+
+        # any additonal regularization goes here...
+
+        return loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.l2_lambda)

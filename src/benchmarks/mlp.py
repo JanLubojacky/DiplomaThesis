@@ -23,39 +23,39 @@ class MLPEvaluator(ModelEvaluator):
 
     def create_model(self, trial: optuna.Trial):
         """Create and save a model instance given parameters in the current trial"""
-        input_size = self.data_manager.get_feature_dim()
-        num_classes = self.data_manager.get_num_classes()
+        input_size = self.data_manager.feature_dim
+        num_classes = self.data_manager.n_classes
 
         # Define hyperparameters
-        if self.params["lr_range"] is None:
-            lr = self.params["lr"]
-        else:
+        if self.params.get("lr_range"):
             lr = trial.suggest_float(
                 "lr", self.params["lr_range"][0], self.params["lr_range"][1], log=True
             )
-        if self.params["l2_lambda_range"] is None:
-            self.params["l2_lambda"] = 5e-4
         else:
+            lr = self.params["lr"]
+        if self.params.get("l2_lambda_range"):
             l2_lambda = trial.suggest_float(
                 "l2_lambda",
                 self.params["l2_lambda_range"][0],
                 self.params["l2_lambda_range"][1],
                 log=True,
             )
-        if self.params["dropout_range"] is None:
-            dropout = self.params["dropout"]
         else:
+            l2_lambda = self.params["l2_lambda"]
+        if self.params.get("dropout_range"):
             dropout = trial.suggest_float(
                 "dropout", self.params["dropout_range"][0], self.params["dropout_range"][1], 0.5
             )
-        if self.params["hidden_channels_range"] is None:
-            hidden_channels = self.params["hidden_channels"]
         else:
+            dropout = self.params["dropout"]
+        if self.params.get("hidden_channels_range"):
             hidden_channels = trial.suggest_int(
                 "hidden_channels",
                 self.params["hidden_channels_range"][0],
                 self.params["hidden_channels_range"][1],
             )
+        else:
+            hidden_channels = self.params["hidden_channels"]
 
         # Create model instance
         self.model = MLPModel(
@@ -71,8 +71,10 @@ class MLPEvaluator(ModelEvaluator):
 
     def train_model(self, train_x, train_y) -> None:
         """Train model implementation"""
+        # print("Training model...")
+        # print(type(train_x), type(train_y))
         # Create data loader
-        train_dataset = MLPDataset(train_x, train_y)
+        train_dataset = MLPDataset(train_x.to_numpy(), train_y)
         train_loader = torch.utils.data.DataLoader(
             train_dataset, batch_size=self.params["batch_size"], shuffle=True
         )
@@ -90,7 +92,7 @@ class MLPEvaluator(ModelEvaluator):
         """Test model implementation"""
 
         # Create test dataset and loader
-        test_dataset = MLPDataset(test_x, test_y)
+        test_dataset = MLPDataset(test_x.to_numpy(), test_y)
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=self.params["batch_size"])
 
         # Get predictions

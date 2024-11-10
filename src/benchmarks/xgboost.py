@@ -10,7 +10,6 @@ class XGBoostEvaluator(ModelEvaluator):
     def __init__(
         self,
         data_manager: OmicDataManager,
-        n_classes: int,
         n_trials: int = 30,
         verbose: bool = True,
     ):
@@ -18,7 +17,7 @@ class XGBoostEvaluator(ModelEvaluator):
         super().__init__(data_manager, n_trials, verbose)
         self.model = None
         self.scaler = StandardScaler()
-        self.n_classes = n_classes
+        self.n_classes = self.data_manager.n_classes
 
     def create_model(self, trial: optuna.Trial):
         """Create and return model instance with trial parameters"""
