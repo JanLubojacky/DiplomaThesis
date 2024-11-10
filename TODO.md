@@ -36,3 +36,15 @@
   - [ ] create gene network graphs from the most important features (structural markers)
 - [ ] visualizer for creating output plots from the output table
 - [ ] comparision of predictions given an omic channel, a couple of graphs to show how the predictions improve as we add more channels
+
+### Ctvrtek necessities
+- [ ] hezky grafy pro nejdulezitejsi biomarkry
+- [ ] enrichment analyzu pro nejdulezitejsi biomarkry
+- [ ] interpretace a validace biomarkeru v literature
+- [ ] v obrazcich anotovat clustery
+
+### For later
+- [ ] prepocitat vsechno pro nove stazene datasety
+  - [ ] BRCA
+  - [ ] LGG
+- [ ] pridat feature gnn
