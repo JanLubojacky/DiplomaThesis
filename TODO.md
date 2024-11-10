@@ -19,15 +19,14 @@
   - [x] XGBoost
   - [x] MLP
   - [ ] GNN models
-    - [ ] sample based gnn
-    - [ ] bipartite gnn
-    - [ ] feature based gnn
+    - [ ] sample based gnn - Po
+    - [ ] bipartite gnn - Po
 - [ ] differential expression analysis with DeSeq2 (probably could reuse the one that is already finished)
 
 ### Running experiments
-- [ ] MDS disease
-- [ ] MDS risk
-- [ ] MDS mutation
+- [ ] MDS disease - Ut
+- [ ] MDS risk - Ut
+- [ ] MDS mutation - Ut
 
 ### Visualizing outputs from experiments
 - [ ] feature importance
@@ -37,7 +36,7 @@
 - [ ] visualizer for creating output plots from the output table
 - [ ] comparision of predictions given an omic channel, a couple of graphs to show how the predictions improve as we add more channels
 
-### Ctvrtek necessities
+### Ctvrtek necessities - St + Ct dopo
 - [ ] hezky grafy pro nejdulezitejsi biomarkry
 - [ ] enrichment analyzu pro nejdulezitejsi biomarkry
 - [ ] interpretace a validace biomarkeru v literature
