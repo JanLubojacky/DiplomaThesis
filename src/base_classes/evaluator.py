@@ -92,8 +92,7 @@ class ModelEvaluator(ABC):
         study = optuna.create_study(direction="maximize")
         study.optimize(objective, n_trials=self.n_trials)
 
-        print("Best hyperparameters:")
-        print(study.best_params)
+        self.print_best_params = study.best_params
 
         return self.best_results
 
@@ -115,6 +114,10 @@ class ModelEvaluator(ABC):
         print(
             f"F1 Weighted: {self.best_results['f1_weighted']:.3f} ± {self.best_results['f1_weighted_std']:.3f}"
         )
+
+    def print_best_parameters(self) -> None:
+        print("Best hyperparameters:")
+        print(self.best_params)
 
     def save_results(self, results_file: str, row_name: str) -> None:
         """

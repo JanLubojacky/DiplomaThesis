@@ -2,6 +2,11 @@ import torch
 import torch.nn.functional as F
 import pytorch_lightning as L
 from torch_geometric.nn import Linear
+import logging
+
+# configure logging at the root level of Lightning
+logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
+
 
 
 class MLPModel(torch.nn.Module):

@@ -1,3 +1,4 @@
+import os
 import optuna
 
 from src.base_classes.evaluator import ModelEvaluator
@@ -6,7 +7,10 @@ from src.models.mlp import MLPModel, MLPLightningModule, MLPDataset
 
 import torch
 import pytorch_lightning as L
+import logging
 
+# configure logging at the root level of Lightning
+logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
 
 class MLPEvaluator(ModelEvaluator):
     def __init__(
@@ -44,7 +48,7 @@ class MLPEvaluator(ModelEvaluator):
             l2_lambda = self.params["l2_lambda"]
         if self.params.get("dropout_range"):
             dropout = trial.suggest_float(
-                "dropout", self.params["dropout_range"][0], self.params["dropout_range"][1], 0.5
+                "dropout", self.params["dropout_range"][0], self.params["dropout_range"][1],
             )
         else:
             dropout = self.params["dropout"]
@@ -56,6 +60,14 @@ class MLPEvaluator(ModelEvaluator):
             )
         else:
             hidden_channels = self.params["hidden_channels"]
+        if self.params.get(
+            "max_epochs_range"
+        ):
+            self.max_epochs = trial.suggest_int(
+                "max_epochs", self.params["max_epochs_range"][0], self.params["max_epochs_range"][1]
+            )
+        else:
+            self.max_epochs = self.params["max_epochs"]
 
         # Create model instance
         self.model = MLPModel(
@@ -76,12 +88,12 @@ class MLPEvaluator(ModelEvaluator):
         # Create data loader
         train_dataset = MLPDataset(train_x.to_numpy(), train_y)
         train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=self.params["batch_size"], shuffle=True
+            train_dataset, batch_size=self.params["batch_size"], shuffle=True,
         )
 
         # Train model
         trainer = L.Trainer(
-            max_epochs=self.params["max_epochs"],
+            max_epochs=self.max_epochs,
             enable_progress_bar=False,
             enable_model_summary=False,
         )
