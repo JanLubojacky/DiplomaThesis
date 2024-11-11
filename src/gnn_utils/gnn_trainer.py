@@ -34,7 +34,7 @@ class GNNTrainer:
             data.y[data.train_mask],
         )
 
-        if self.params["l1_lambda"]:
+        if self.params.get("l1_lambda"):
             l1_loss = self.model.projection_layers_l1_norm()
             loss += l1_loss * self.params["l1_lambda"]
 
@@ -106,10 +106,9 @@ class GNNTrainer:
         with torch.no_grad():
             data = data.to(self.device)
             out = self.model(data)
-            loss = self.loss_fn(out[mask], data.y[mask])
+            y_pred = out.argmax(dim=1)[mask].cpu()
 
-            metrics = self._compute_metrics(out, data, mask)
-            return (loss.item(),) + metrics
+        return y_pred
 
     def _compute_metrics(self, out, data, mask):
         """Compute accuracy and F1 scores for the given mask."""
