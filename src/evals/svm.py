@@ -28,29 +28,41 @@ class SVMEvaluator(ModelEvaluator):
         """Create and return model instance with trial parameters"""
         if self.mode == "linear":
             params = {
-                "C": trial.suggest_float("C", self.params["C_lb"], self.params["C_ub"], log=True),
-                "class_weight": trial.suggest_categorical("class_weight", ["balanced", None]),
+                "C": trial.suggest_float(
+                    "C", self.params["C_lb"], self.params["C_ub"], log=True
+                ),
+                "class_weight": trial.suggest_categorical(
+                    "class_weight", ["balanced", None]
+                ),
                 "dual": "auto",
             }
 
             rfe_step_range = self.params.get("rfe_step_range")
             rfe_n_features_range = self.params.get("rfe_n_features_range")
             if rfe_step_range is not None:
-                self.rfe_step = trial.suggest_float("rfe_step", rfe_step_range[0], rfe_step_range[1])
+                self.rfe_step = trial.suggest_float(
+                    "rfe_step", rfe_step_range[0], rfe_step_range[1]
+                )
             if rfe_n_features_range is not None:
                 self.rfe_n_features = trial.suggest_int(
                     "rfe_n_features", rfe_n_features_range[0], rfe_n_features_range[1]
                 )
 
             rfe = RFE(
-                LinearSVC(**params), step=self.rfe_step, n_features_to_select=self.rfe_n_features
+                LinearSVC(**params),
+                step=self.rfe_step,
+                n_features_to_select=self.rfe_n_features,
             )
         elif self.mode == "rbf":
             params = {
-                "C": trial.suggest_float("C", self.params["C_lb"], self.params["C_ub"], log=True),
+                "C": trial.suggest_float(
+                    "C", self.params["C_lb"], self.params["C_ub"], log=True
+                ),
                 # "gamma": trial.suggest_float("gamma", self.params["gamma_lb"], self.params["gamma_ub"], log=True),
                 "gamma": "scale",
-                "class_weight": trial.suggest_categorical("class_weight", ["balanced", None]),
+                "class_weight": trial.suggest_categorical(
+                    "class_weight", ["balanced", None]
+                ),
                 "kernel": "rbf",
             }
             rfe = SVC(**params)

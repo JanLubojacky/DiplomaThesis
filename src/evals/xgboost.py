@@ -25,7 +25,9 @@ class XGBoostEvaluator(ModelEvaluator):
             "verbosity": 1,
             "objective": "multi:softmax",
             "eval_metric": "mlogloss",
-            "booster": trial.suggest_categorical("booster", ["gbtree", "gblinear", "dart"]),
+            "booster": trial.suggest_categorical(
+                "booster", ["gbtree", "gblinear", "dart"]
+            ),
             "lambda": trial.suggest_float("lambda", 1e-8, 1.0, log=True),
             "alpha": trial.suggest_float("alpha", 1e-8, 1.0, log=True),
             "num_class": self.n_classes,
@@ -47,7 +49,9 @@ class XGBoostEvaluator(ModelEvaluator):
         if params["booster"] == "dart":
             params.update(
                 {
-                    "sample_type": trial.suggest_categorical("sample_type", ["uniform", "weighted"]),
+                    "sample_type": trial.suggest_categorical(
+                        "sample_type", ["uniform", "weighted"]
+                    ),
                     "normalize_type": trial.suggest_categorical(
                         "normalize_type", ["tree", "forest"]
                     ),

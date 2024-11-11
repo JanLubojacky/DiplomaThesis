@@ -77,7 +77,11 @@ class ModelEvaluator(ABC):
                 for metric in fold_scores[0].keys()
             }
 
-            current_score = mean_scores["acc"] * mean_scores["f1_macro"] * mean_scores["f1_weighted"]
+            current_score = (
+                mean_scores["acc"]
+                * mean_scores["f1_macro"]
+                * mean_scores["f1_weighted"]
+            )
 
             # Update best results if current score is strictly better
             if is_strictly_better(self.best_results, mean_scores):
@@ -107,7 +111,9 @@ class ModelEvaluator(ABC):
     def print_best_results(self) -> None:
         """Print evaluation results"""
         print("Best model performance:")
-        print(f"Accuracy: {self.best_results['acc']:.3f} ± {self.best_results['acc_std']:.3f}")
+        print(
+            f"Accuracy: {self.best_results['acc']:.3f} ± {self.best_results['acc_std']:.3f}"
+        )
         print(
             f"F1 Macro: {self.best_results['f1_macro']:.3f} ± {self.best_results['f1_macro_std']:.3f}"
         )

@@ -117,7 +117,9 @@ class OmicDataSplitter:
 
                 # construct polars dataframes with the selected features
                 train_df = pl.DataFrame(train_df).select(selected_features)
-                test_df = pl.DataFrame(X_test, schema=self.feature_names).select(selected_features)
+                test_df = pl.DataFrame(X_test, schema=self.feature_names).select(
+                    selected_features
+                )
             case _:
                 raise ValueError("type must be either 'variance' or 'mrmr'")
 
@@ -128,7 +130,9 @@ class OmicDataSplitter:
         Process the data and save it to the output directory
         """
 
-        skf = StratifiedKFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
+        skf = StratifiedKFold(
+            n_splits=self.n_splits, shuffle=True, random_state=self.random_state
+        )
         y = self.y_df["class"].to_numpy()
 
         for i, (train_index, test_index) in tqdm(

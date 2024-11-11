@@ -21,7 +21,9 @@ class KNNEvaluator(ModelEvaluator):
     def create_model(self, trial: optuna.Trial):
         """Create and return model instance with trial parameters"""
         knn = KNeighborsClassifier(
-            n_neighbors=trial.suggest_int("n_neighbors", self.params["k_lb"], self.params["k_ub"]),
+            n_neighbors=trial.suggest_int(
+                "n_neighbors", self.params["k_lb"], self.params["k_ub"]
+            ),
             # weights=trial.suggest_categorical("weights", ["uniform", "distance"]),
         )
         self.model = knn

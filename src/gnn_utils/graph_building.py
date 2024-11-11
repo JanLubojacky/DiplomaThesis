@@ -143,6 +143,7 @@ def create_diff_exp_connections_norm(X, multiplier=1.0):
             indicates the expression category (-1, 0, or 1) for the corresponding
             gene in each sample.
     """
+    #TODO: maybe the differential expression should be performed class-wise based on the training test?
 
     # fit the differential expression model
     mean_exps = X.mean(dim=0)
@@ -188,9 +189,9 @@ def diff_exp_connections_nbnom(expression_vector, var_multiplier=1):
     with warnings.catch_warnings():
         # for some distributions, the fitting will fail, so ignore warnings for those
         warnings.filterwarnings("ignore")
-        res = sm.NegativeBinomial(expression_vector, np.ones_like(expression_vector)).fit(
-            start_params=[1, 1], disp=0
-        )
+        res = sm.NegativeBinomial(
+            expression_vector, np.ones_like(expression_vector)
+        ).fit(start_params=[1, 1], disp=0)
 
     mu = np.exp(res.params[0])
     p = 1 / (1 + mu * res.params[1])

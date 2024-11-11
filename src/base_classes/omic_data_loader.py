@@ -69,8 +69,12 @@ class OmicDataLoader(ABC):
         """
         Given an index retrieve the train and test dataframe for that fold
         """
-        train_df = pl.read_csv(os.path.join(self.data_dir, "train", self.train_files[fold_idx]))
-        test_df = pl.read_csv(os.path.join(self.data_dir, "test", self.test_files[fold_idx]))
+        train_df = pl.read_csv(
+            os.path.join(self.data_dir, "train", self.train_files[fold_idx])
+        )
+        test_df = pl.read_csv(
+            os.path.join(self.data_dir, "test", self.test_files[fold_idx])
+        )
 
         return train_df, test_df
 
@@ -102,7 +106,11 @@ class OmicDataManager(ABC):
         return omic_data
 
     def load_classes(
-        self, train_df: pl.DataFrame, test_df: pl.DataFrame, sample_column: str, class_column: str
+        self,
+        train_df: pl.DataFrame,
+        test_df: pl.DataFrame,
+        sample_column: str,
+        class_column: str,
     ):
         """
         Given a train_df a test_df and the names of the sample and class columns
@@ -115,6 +123,9 @@ class OmicDataManager(ABC):
             sample_ids = train_df[sample_column].to_numpy()
             if not (sample_ids == self.sample_ids).all():
                 raise ValueError("Sample ids are not matching")
+
+        if train_df.columns != test_df.columns:
+            raise ValueError("Columns of train and test df are not matching!!!")
 
         if self.train_y is None and self.test_y is None:
             self.train_y = train_df[class_column].to_numpy()

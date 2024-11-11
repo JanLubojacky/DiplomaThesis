@@ -29,4 +29,4 @@ dependencies = [
 typeCheckingMode = "off"
 
 [tool.ruff]
-line-length = 101
+line-length = 88

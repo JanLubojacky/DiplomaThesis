@@ -1,8 +1,9 @@
+import logging
+
+import pytorch_lightning as L
 import torch
 import torch.nn.functional as F
-import pytorch_lightning as L
 from torch_geometric.nn import Linear
-import logging
 
 # configure logging at the root level of Lightning
 logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
@@ -50,7 +51,9 @@ class MLPLightningModule(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.l2_lambda)
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=self.lr, weight_decay=self.l2_lambda
+        )
         return optimizer
 
 

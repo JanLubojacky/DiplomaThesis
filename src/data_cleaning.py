@@ -27,7 +27,9 @@ def get_common_elements(*lists: list) -> list:
     return list(common_set)
 
 
-def sort_feature_columns(df: pl.DataFrame, sample_order: list, id_cols: list) -> pl.DataFrame:
+def sort_feature_columns(
+    df: pl.DataFrame, sample_order: list, id_cols: list
+) -> pl.DataFrame:
     """
     Sort columns in a gene expression DataFrame based on a provided sample order.
     Keeps identifier columns first, then sorts the sample columns.
@@ -52,12 +54,16 @@ def sort_feature_columns(df: pl.DataFrame, sample_order: list, id_cols: list) ->
     # Verify all samples in sample_order exist in DataFrame
     missing_samples = set(sample_order) - set(sample_cols)
     if missing_samples:
-        raise ValueError(f"Samples in order list not found in DataFrame: {missing_samples}")
+        raise ValueError(
+            f"Samples in order list not found in DataFrame: {missing_samples}"
+        )
 
     # Verify all samples in DataFrame are in sample_order
     extra_samples = set(sample_cols) - set(sample_order)
     if extra_samples:
-        raise ValueError(f"Samples in DataFrame not found in order list: {extra_samples}")
+        raise ValueError(
+            f"Samples in DataFrame not found in order list: {extra_samples}"
+        )
 
     # Verify all id_cols exist in DataFrame
     missing_id_cols = set(id_cols) - set(df.columns)

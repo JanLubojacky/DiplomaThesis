@@ -1,12 +1,12 @@
+import logging
+
 import optuna
+import pytorch_lightning as L
+import torch
 
 from src.base_classes.evaluator import ModelEvaluator
 from src.base_classes.omic_data_loader import OmicDataManager
-from src.models.mlp import MLPModel, MLPLightningModule, MLPDataset
-
-import torch
-import pytorch_lightning as L
-import logging
+from src.models.mlp import MLPDataset, MLPLightningModule, MLPModel
 
 # configure logging at the root level of Lightning
 logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
@@ -64,7 +64,9 @@ class MLPEvaluator(ModelEvaluator):
             hidden_channels = self.params["hidden_channels"]
         if self.params.get("max_epochs_range"):
             self.max_epochs = trial.suggest_int(
-                "max_epochs", self.params["max_epochs_range"][0], self.params["max_epochs_range"][1]
+                "max_epochs",
+                self.params["max_epochs_range"][0],
+                self.params["max_epochs_range"][1],
             )
         else:
             self.max_epochs = self.params["max_epochs"]
@@ -79,7 +81,9 @@ class MLPEvaluator(ModelEvaluator):
         )
 
         # Create lightning module
-        self.lightning_model = MLPLightningModule(net=self.model, lr=lr, l2_lambda=l2_lambda)
+        self.lightning_model = MLPLightningModule(
+            net=self.model, lr=lr, l2_lambda=l2_lambda
+        )
 
     def train_model(self, train_x, train_y) -> None:
         """Train model implementation"""
@@ -107,7 +111,9 @@ class MLPEvaluator(ModelEvaluator):
 
         # Create test dataset and loader
         test_dataset = MLPDataset(test_x.to_numpy(), test_y)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=self.params["batch_size"])
+        test_loader = torch.utils.data.DataLoader(
+            test_dataset, batch_size=self.params["batch_size"]
+        )
 
         # Get predictions
         self.model.eval()

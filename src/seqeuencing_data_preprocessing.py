@@ -54,7 +54,9 @@ def preprocess_seq_data(
     processed_df = (
         processed_df.with_columns(
             [
-                pl.concat_list(pl.all().exclude(*annotation_cols, "cov", "detection_rate"))
+                pl.concat_list(
+                    pl.all().exclude(*annotation_cols, "cov", "detection_rate")
+                )
                 .map_elements(lambda x: np.median(x), return_dtype=pl.Float64)
                 .alias("median_expression")
             ]
@@ -74,7 +76,13 @@ def preprocess_seq_data(
     # Normalize to counts per million
     if cpm_normalization:
         processed_df = processed_df.with_columns(
-            [(pl.all().exclude(*annotation_cols) * 10**6 / pl.all().exclude(*annotation_cols).sum())]
+            [
+                (
+                    pl.all().exclude(*annotation_cols)
+                    * 10**6
+                    / pl.all().exclude(*annotation_cols).sum()
+                )
+            ]
         )
 
     # Log2 transform
