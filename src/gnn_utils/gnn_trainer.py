@@ -2,6 +2,8 @@ import torch
 import torch_geometric as pyg
 from sklearn.metrics import accuracy_score, f1_score
 from typing import Optional, Dict, Any
+import numpy as np
+import os
 
 
 class GNNTrainer:
@@ -18,6 +20,10 @@ class GNNTrainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.params = params
+
+        # Initialize best metrics tracking
+        self.best_val_score = -float("inf")
+        self.best_model_state = None
 
         # Device selection logic with MPS support
         if torch.cuda.is_available():
@@ -73,11 +79,32 @@ class GNNTrainer:
             pred = out.argmax(dim=1)[mask].cpu()
             return pred
 
+    def compute_geometric_mean(self, metrics: tuple[float, float, float]) -> float:
+        """Compute geometric mean of metrics (accuracy, f1_macro, f1_weighted)."""
+        # Add small epsilon to avoid zero values
+        epsilon = 1e-10
+        metrics_array = np.array(metrics) + epsilon
+        return float(np.exp(np.mean(np.log(metrics_array))))
+
+    def save_model(self, save_path: str) -> None:
+        """Save the best model state."""
+        if self.best_model_state is not None:
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            torch.save(
+                {
+                    "model_state_dict": self.best_model_state,
+                    "best_val_score": self.best_val_score,
+                },
+                save_path,
+            )
+            print(f"Saved best model to {save_path}")
+
     def train(
         self,
         data: pyg.data.HeteroData,
         epochs: int,
         log_interval: int = 1,
+        save_path: Optional[str] = None,
     ) -> None:
         """Train the model."""
         # Initial validation
@@ -90,26 +117,40 @@ class GNNTrainer:
             # Training step
             train_loss, out = self.one_epoch(data)
 
-            if epoch % log_interval == 0:
-                # Get predictions for all splits
-                train_pred = out.argmax(dim=1)[data.train_mask].cpu()
+            with torch.no_grad():
+                # Get validation predictions and compute metrics every epoch
                 val_pred = self.test(data, data.val_mask)
-                test_pred = self.test(data, data.test_mask)
-
-                # Compute and log metrics
-                train_metrics = self._compute_metrics(
-                    train_pred, data.y[data.train_mask].cpu()
-                )
                 val_metrics = self._compute_metrics(
                     val_pred, data.y[data.val_mask].cpu()
                 )
-                test_metrics = self._compute_metrics(
-                    test_pred, data.y[data.test_mask].cpu()
-                )
 
-                self._log_metrics(
-                    epoch, train_loss, train_metrics, val_metrics, test_metrics
-                )
+                # Compute geometric mean of validation metrics
+                val_score = self.compute_geometric_mean(val_metrics)
+
+                # Save model if validation score improves
+                if val_score > self.best_val_score:
+                    self.best_val_score = val_score
+                    self.best_pred = val_pred
+                    # self.best_model_state = self.model.state_dict()
+                    # if save_path:
+                    #     self.save_model(save_path)
+
+                if epoch % log_interval == 0:
+                    # Get predictions for all splits
+                    train_pred = out.argmax(dim=1)[data.train_mask].cpu()
+                    test_pred = self.test(data, data.test_mask)
+
+                    # Compute and log metrics
+                    train_metrics = self._compute_metrics(
+                        train_pred, data.y[data.train_mask].cpu()
+                    )
+                    test_metrics = self._compute_metrics(
+                        test_pred, data.y[data.test_mask].cpu()
+                    )
+
+                    self._log_metrics(
+                        epoch, train_loss, train_metrics, val_metrics, test_metrics
+                    )
 
     def _compute_metrics(
         self, y_pred: torch.Tensor, y_true: torch.Tensor
@@ -137,6 +178,9 @@ class GNNTrainer:
         val_acc, val_f1_m, val_f1_w = val_metrics
         test_acc, test_f1_m, test_f1_w = test_metrics
 
+        # Calculate geometric means
+        val_geom_mean = self.compute_geometric_mean(val_metrics)
+
         print(f"\nEpoch: {epoch:03d}:")
         print(
             f"Train Loss: {train_loss:.4f}, "
@@ -147,7 +191,8 @@ class GNNTrainer:
         print(
             f"Val Acc: {val_acc:.4f}, "
             f"Val F1 Macro: {val_f1_m:.4f}, "
-            f"Val F1 Weighted: {val_f1_w:.4f}"
+            f"Val F1 Weighted: {val_f1_w:.4f}, "
+            f"Val Geometric Mean: {val_geom_mean:.4f}"
         )
         print(
             f"Test Acc: {test_acc:.4f}, "

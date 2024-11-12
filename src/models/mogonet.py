@@ -42,7 +42,7 @@ class MOGONET(torch.nn.Module):
                 self.encoders[omic] = GAT(
                     in_channels=in_channels[i],
                     hidden_channels=hidden_channels[omic],
-                    out_channels=num_classes,
+                    out_channels=integration_in_dim,
                     num_layers=num_layers,
                     dropout=dropout,
                     v2=True,
@@ -91,6 +91,8 @@ class MOGONET(torch.nn.Module):
         # stack all omics on top of each other
         # x.shape = (n_samples, n_omics, n_features)
         x = torch.stack([x_dict[omic] for omic in data.x_dict.keys()], dim=1)
+
+        # print(f"{x.shape=}")
 
         # x.shape = (n_samples, n_classes)
         if self.integrator:

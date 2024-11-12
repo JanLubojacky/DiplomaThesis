@@ -57,7 +57,8 @@ class MOGONETEvaluator(ModelEvaluator):
 
     def test_model(self, data, _) -> dict:
         """Test model implementation"""
-        y_pred = self.trainer.test(data, data.test_mask).numpy()
+        # y_pred = self.trainer.test(data, data.test_mask).numpy()
+        y_pred = self.trainer.best_pred
         y_true = data.y[data.test_mask].numpy()
         return self._calculate_metrics(y_true, y_pred)
 

@@ -95,6 +95,9 @@ class AttentionIntegrator(torch.nn.Module):
 
         x = torch.matmul(qkt, v)
 
+        # print(f"{x.shape=}")
+        # print(f"{xt.shape=}")
+
         # add residuals (view_dim == integration_dim)
         x = x + xt
 
