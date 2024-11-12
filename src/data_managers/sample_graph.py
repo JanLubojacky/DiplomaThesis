@@ -86,6 +86,10 @@ class SampleGraphDataManager(OmicDataManager):
         data.test_mask = torch.cat(
             [torch.zeros_like(train_y), torch.ones_like(test_y)], dim=0
         )
+        # make them bool
+        data.train_mask = data.train_mask.bool()
+        data.test_mask = data.test_mask.bool()
+        data.val_mask = data.test_mask # !! CHANGE LATER
 
         # prepare for next fold
         self.reset_attributes()

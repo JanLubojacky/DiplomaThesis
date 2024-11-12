@@ -84,16 +84,18 @@ class AttentionIntegrator(torch.nn.Module):
         k = self.key(xt)
         v = self.value(xt)
 
+        # print(
+        #     "AttentionIntegrator",
+        # )
+        # print(q.shape, k.shape, v.shape)
+
         # Compute the scaled dot-product attention
         qkt = torch.matmul(q, k.transpose(1, 2))
         qkt = F.softmax(qkt / self.hidden_dim**0.5, dim=-1)
 
-        qkt = torch.matmul(q, k.transpose(-2, -1)) / torch.sqrt(self.hidden_dim)
-        qkt = F.softmax(qkt, dim=-1)
-
         x = torch.matmul(qkt, v)
 
-        # add residuals
+        # add residuals (view_dim == integration_dim)
         x = x + xt
 
         # layer norm

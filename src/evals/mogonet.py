@@ -1,8 +1,10 @@
 import optuna
+import torch
 
 from src.models.mogonet import MOGONET
 from src.base_classes.evaluator import ModelEvaluator
 from src.base_classes.omic_data_loader import OmicDataManager
+from src.gnn_utils.gnn_trainer import GNNTrainer
 
 
 class MOGONETEvaluator(ModelEvaluator):
@@ -38,11 +40,24 @@ class MOGONETEvaluator(ModelEvaluator):
             dropout=self.params["dropout"],
             integrator_type=self.params["integrator_type"],
             integration_in_dim=self.params["integration_in_dim"],
+            vcdn_hidden_channels=self.params["vcdn_hidden_channels"],
+        )
+        self.trainer = GNNTrainer(
+            model=self.model,
+            optimizer=torch.optim.Adam(self.model.parameters(), lr=1e-3), # this could be later set by the trial
+            loss_fn=torch.nn.CrossEntropyLoss(),
+            # params={
+            #     "l1_lambda": 0.01, # this could be later set by the trial
+            # }
         )
 
-    def train_model(self, train_x, train_y) -> None:
+    def train_model(self, data, _) -> None:
         """Train model implementation"""
+        self.trainer.train(data, self.params["epochs"], self.params["log_interval"])
 
-    def test_model(self, test_x, test_y) -> dict:
+    def test_model(self, data, _) -> dict:
         """Test model implementation"""
+        y_pred = self.trainer.test(data, data.test_mask).numpy()
+        y_true = data.y[data.test_mask].numpy()
+        return self._calculate_metrics(y_true, y_pred)
 

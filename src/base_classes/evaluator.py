@@ -96,7 +96,7 @@ class ModelEvaluator(ABC):
         study = optuna.create_study(direction="maximize")
         study.optimize(objective, n_trials=self.n_trials)
 
-        self.print_best_params = study.best_params
+        self.best_params = study.best_params
 
         return self.best_results
 

@@ -17,10 +17,10 @@ class MOGONET(torch.nn.Module):
         integration_in_dim,
         num_classes,
         encoder_type,
+        vcdn_hidden_channels,
         dropout=0.4,
         num_layers=2,
         num_heads=2,
-        vcdn_hidden_channels=32,
         integrator_type="linear",
         seed=12345,
     ):
@@ -62,7 +62,7 @@ class MOGONET(torch.nn.Module):
                 n_views=len(omics),
                 view_dim=integration_in_dim,
                 n_classes=num_classes,
-                hidden_dim=vcdn_hidden_channels,
+                hidden_dim=integration_in_dim,
                 dropout=0.0,
             )
         elif integrator_type == "vcdn":
@@ -83,11 +83,10 @@ class MOGONET(torch.nn.Module):
         x_dict = data.x_dict
         edge_index_dict = data.edge_index_dict
 
-        print(x_dict)
-
         for omic in data.x_dict.keys():
-            print(omic)
             x_dict[omic] = self.encoders[omic](x_dict[omic], edge_index_dict[omic])
+            # print(f"{x_dict[omic].shape}")
+
 
         # stack all omics on top of each other
         # x.shape = (n_samples, n_omics, n_features)
@@ -95,6 +94,7 @@ class MOGONET(torch.nn.Module):
 
         # x.shape = (n_samples, n_classes)
         if self.integrator:
+            # print(f"{x.shape}")
             x = self.integrator(x)
         else:
             x = x.squeeze()
