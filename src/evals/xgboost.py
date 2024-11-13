@@ -25,9 +25,10 @@ class XGBoostEvaluator(ModelEvaluator):
             "verbosity": 1,
             "objective": "multi:softmax",
             "eval_metric": "mlogloss",
-            "booster": trial.suggest_categorical(
-                "booster", ["gbtree", "gblinear", "dart"]
-            ),
+            # "booster": trial.suggest_categorical(
+            #     "booster", ["gbtree", "gblinear", "dart"]
+            # ),
+            "booster" : "gblinear",
             "lambda": trial.suggest_float("lambda", 1e-8, 1.0, log=True),
             "alpha": trial.suggest_float("alpha", 1e-8, 1.0, log=True),
             "num_class": self.n_classes,

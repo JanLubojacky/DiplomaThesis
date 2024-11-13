@@ -37,6 +37,16 @@ class BipartiteGraphDataManager(OmicDataManager):
         super().__init__(omic_data_loaders, n_splits)
         self.params = params
 
+        # save num_classes and input dims
+        data, _, _, _ = self.get_split(0)
+        self.omics = data.omics
+        self.feature_names = data.feature_names
+        self.relations = list(data.edge_index_dict.keys())
+        self.input_dims = {
+            omic: data.x_dict[omic].shape[1] for omic in data.x_dict.keys()
+        }
+        self.n_classes = len(torch.unique(data.y))
+
     def get_split(
         self, fold_idx: int
     ) -> Tuple[pyg.data.HeteroData, pyg.data.HeteroData, None, None]:

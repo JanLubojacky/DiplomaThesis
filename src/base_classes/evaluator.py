@@ -40,6 +40,7 @@ class ModelEvaluator(ABC):
         self.n_trials = n_trials
         self.verbose = verbose
         self.data_manager = data_manager
+        self.best_score = 0.0
         self.best_results = {
             "acc": 0.0,
             "f1_macro": 0.0,
@@ -83,13 +84,21 @@ class ModelEvaluator(ABC):
                 * mean_scores["f1_weighted"]
             )
 
-            # Update best results if current score is strictly better
-            if is_strictly_better(self.best_results, mean_scores):
+            if current_score > self.best_score:
+                self.best_score = current_score
                 self.best_results.update(mean_scores)
                 self.best_results.update(std_scores)
                 if self.verbose:
                     print(f"New best score: {current_score:.3f}")
                     self.print_best_results()
+
+            # # Update best results if current score is strictly better
+            # if is_strictly_better(self.best_results, mean_scores):
+            #     self.best_results.update(mean_scores)
+            #     self.best_results.update(std_scores)
+            #     if self.verbose:
+            #         print(f"New best score: {current_score:.3f}")
+            #         self.print_best_results()
 
             return current_score
 

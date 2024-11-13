@@ -149,7 +149,7 @@ def create_diff_exp_connections_norm(X, multiplier=1.0):
     mean_exps = X.mean(dim=0)
     exps_std = X.std(dim=0)
 
-    print(mean_exps.shape, exps_std.shape)
+    # print(mean_exps.shape, exps_std.shape)
 
     lb_exps = mean_exps - exps_std * multiplier
     ub_exps = mean_exps + exps_std * multiplier
@@ -162,12 +162,12 @@ def create_diff_exp_connections_norm(X, multiplier=1.0):
     A_exps[mask_below] = -1  # Set under-expressed elements
     A_exps[mask_above] = 1  # Set over-expressed elements
 
-    print("isolated sample nodes, isolated gene nodes, mean degree: ")
-    print(
-        (A_exps.abs().sum(axis=1) == 0).sum(),
-        (A_exps.abs().sum(axis=0) == 0).sum(),
-        A_exps.abs().sum() / A_exps.shape[0],
-    )
+    # print("isolated sample nodes, isolated gene nodes, mean degree: ")
+    # print(
+    #     (A_exps.abs().sum(axis=1) == 0).sum(),
+    #     (A_exps.abs().sum(axis=0) == 0).sum(),
+    #     A_exps.abs().sum() / A_exps.shape[0],
+    # )
 
     return A_exps
 
@@ -239,11 +239,11 @@ def create_diff_exp_connections_nbnom(X, train_mask, var_multiplier=1.0):
 
     # isolated_nodes_mask = torch.sum(torch.abs(A), dim=1) == 0
     # A = A[~isolated_nodes_mask]
-    print("isolated sample nodes, isolated gene nodes, mean degree: ")
-    print(
-        (A.abs().sum(axis=1) == 0).sum(),
-        (A.abs().sum(axis=0) == 0).sum(),
-        A.abs().sum() / A.shape[0],
-    )
+    # print("isolated sample nodes, isolated gene nodes, mean degree: ")
+    # print(
+    #     (A.abs().sum(axis=1) == 0).sum(),
+    #     (A.abs().sum(axis=0) == 0).sum(),
+    #     A.abs().sum() / A.shape[0],
+    # )
 
     return A  # , isolated_nodes_mask
