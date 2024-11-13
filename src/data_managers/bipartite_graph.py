@@ -2,18 +2,19 @@ from typing import Tuple, Dict, List
 import polars as pl
 import torch
 import torch_geometric as pyg
-import torch_geometric.transforms as T
+from torch_geometric.transforms import ToUndirected
 
-from src.base_classes.omic_data_loader import OmicDataManager
-from src.gnn_utils.graph_building import dense_to_coo
-from bipartite_gnn.preprocessing import (
+from src.base_classes.omic_data_loader import OmicDataManager, OmicDataLoader
+from src.gnn_utils.graph_building import dense_to_coo, create_diff_exp_connections_norm
+from src.gnn_utils.interactions import (
     gg_interactions,
     get_mirna_gene_interactions,
     pp_interactions,
+    ensembl_ids_to_gene_names,
 )
 
 
-class BRCAGraphDataManager(OmicDataManager):
+class BipartiteGraphDataManager(OmicDataManager):
     """
     Graph data manager for BRCA multi-omic data with gene-gene interactions
     """
@@ -53,10 +54,9 @@ class BRCAGraphDataManager(OmicDataManager):
         # Load pre-split data
         omic_data = self.load_split(fold_idx)
         data = pyg.data.HeteroData()
+        data.feature_names = []
 
-        # Process each omic and get gene names
         omic_features = {}
-        omic_genes = {}
 
         for omic in omic_data:
             # Get train and test data
@@ -78,17 +78,26 @@ class BRCAGraphDataManager(OmicDataManager):
             X = torch.cat([train_features, test_features], dim=0)
 
             # Store features and gene names
-            omic_features[omic] = X
-            omic_genes[omic] = train_df.drop(
+            omic_features[omic] = train_df.drop(
                 class_column, sample_column
-            ).columns.to_list()
+            ).columns
 
-            # Create data nodes
+            # Create sample nodes
             data[omic].x = X
 
+            # Create feature nodes, shape (n_features, n_features)
+            data[omic + "_feature"].x = torch.ones(X.shape[1], X.shape[1], dtype=torch.float32)
+            data.feature_names += [omic + "_feature"]
+
+            # Create edges for the bipartite graph (sample -> feature)
+            A = create_diff_exp_connections_norm(X, multiplier=self.params["diff_exp_thresholds"][omic])
+            data[omic, "diff_exp", omic + "_feature"].edge_index = dense_to_coo(A)
+
+        data = ToUndirected()(data)
+
         # Build graph structure
-        self._build_hetero_graph(
-            data=data, omic_features=omic_features, omic_genes=omic_genes
+        data = self._build_hetero_graph(
+            data=data, omic_features=omic_features
         )
 
         # Add global attributes
@@ -121,48 +130,53 @@ class BRCAGraphDataManager(OmicDataManager):
     def _build_hetero_graph(
         self,
         data: pyg.data.HeteroData,
-        omic_features: Dict[str, torch.Tensor],
-        omic_genes: Dict[str, List[str]],
+        omic_features: Dict[str, List[str]],
     ) -> None:
         """Build heterogeneous graph with all omics and their interactions"""
-        # Add gene-gene interactions within omics
-        for omic in ["mrna", "cna"]:
-            if omic in omic_genes:
-                features_A = self._get_gene_interactions(omic_genes[omic])
-                data[omic, "interacts", omic].edge_index = dense_to_coo(features_A)
+
+        if "mrna" in omic_features:
+            mrna_gene_names = ensembl_ids_to_gene_names(omic_features["mrna"])
+            data["mrna_feature", "interacts", "mrna_feature"].edge_index = dense_to_coo(
+                self._get_gene_interactions(mrna_gene_names, mrna_gene_names)
+            )
+
+        # if "mirna" in omic_features and "circrna" in omic_features:
+        #     ...
 
         # Add miRNA-gene interactions
-        if "mirna" in omic_genes and "mrna" in omic_genes:
+        if "mirna" in omic_features and "mrna" in omic_features:
+            mirna_gene_names = ensembl_ids_to_gene_names(omic_features["mirna"], map_file="interaction_data/gene_id_to_mirna_name.csv")
             mirna_mrna = get_mirna_gene_interactions(
-                omic_genes["mirna"], omic_genes["mrna"]
+                mirna_gene_names,mrna_gene_names, mirna_mrna_db="interaction_data/mirna_genes_mrna.csv"
             )
-            data["mirna", "regulates", "mrna"].edge_index = dense_to_coo(mirna_mrna)
+            data["mirna_feature", "regulates", "mrna_feature"].edge_index = dense_to_coo(mirna_mrna)
 
-        if "mirna" in omic_genes and "cna" in omic_genes:
-            mirna_cna = get_mirna_gene_interactions(
-                omic_genes["mirna"], omic_genes["cna"]
-            )
-            data["mirna", "regulates", "cna"].edge_index = dense_to_coo(mirna_cna)
-
-        # Add mRNA-CNA interactions
-        if "mrna" in omic_genes and "cna" in omic_genes:
-            mc_A = self._get_gene_interactions(omic_genes["mrna"], omic_genes["cna"])
-            data["mrna", "interacts", "cna"].edge_index = dense_to_coo(mc_A)
+        # if "mirna" in omic_features and "cna" in omic_features:
+        #     mirna_cna = get_mirna_gene_interactions(
+        #         omic_features["mirna"], omic_features["cna"]
+        #     )
+        #     data["mirna", "regulates", "cna"].edge_index = dense_to_coo(mirna_cna)
+        #
+        # # Add mRNA-CNA interactions
+        # if "mrna" in omic_features and "cna" in omic_features:
+        #     mc_A = self._get_gene_interactions(omic_features["mrna"], omic_features["cna"])
+        #     data["mrna", "interacts", "cna"].edge_index = dense_to_coo(mc_A)
 
         # Make graph undirected
-        data = T.ToUndirected()(data)
+        # data = T.ToUndirected()(data)
 
         # Add metadata
         data.omics = list(omic_features.keys())
         data.num_relations = len(data.edge_index_dict.keys())
 
+        return data
+
     def _get_gene_interactions(
         self, genes1: List[str], genes2: List[str] = None
     ) -> torch.Tensor:
         """Get gene-gene interactions from databases"""
-        if genes2 is None:
-            genes2 = genes1
 
         gg_A = gg_interactions(genes1, genes2)
         pp_A = pp_interactions(genes1, genes2)
+
         return torch.logical_or(gg_A, pp_A).int()

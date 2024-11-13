@@ -19,7 +19,7 @@
   - [x] XGBoost
   - [x] MLP
   - [ ] GNN models
-    - [ ] sample based gnn - Po
+    - [x] sample based gnn - Po
     - [ ] bipartite gnn - Po
 - [ ] differential expression analysis with DeSeq2 (probably could reuse the one that is already finished)
 

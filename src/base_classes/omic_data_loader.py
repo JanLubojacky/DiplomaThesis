@@ -56,10 +56,6 @@ class OmicDataLoader(ABC):
         self.train_files.sort()
         self.test_files.sort()
 
-        print("files")
-        print(self.train_files)
-        print(self.test_files)
-
         if len(self.train_files) != self.n_splits:
             raise ValueError("Number of train files is not equal to n_splits")
         if len(self.test_files) != self.n_splits:
