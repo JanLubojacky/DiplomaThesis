@@ -150,9 +150,6 @@ class BipartiteGraphDataManager(OmicDataManager):
                 self._get_gene_interactions(mrna_gene_names, mrna_gene_names)
             )
 
-        # if "mirna" in omic_features and "circrna" in omic_features:
-        #     ...
-
         # Add miRNA-gene interactions
         if "mirna" in omic_features and "mrna" in omic_features:
             mirna_gene_names = ensembl_ids_to_gene_names(omic_features["mirna"], map_file="interaction_data/gene_id_to_mirna_name.csv")
@@ -160,20 +157,6 @@ class BipartiteGraphDataManager(OmicDataManager):
                 mirna_gene_names,mrna_gene_names, mirna_mrna_db="interaction_data/mirna_genes_mrna.csv"
             )
             data["mirna_feature", "regulates", "mrna_feature"].edge_index = dense_to_coo(mirna_mrna)
-
-        # if "mirna" in omic_features and "cna" in omic_features:
-        #     mirna_cna = get_mirna_gene_interactions(
-        #         omic_features["mirna"], omic_features["cna"]
-        #     )
-        #     data["mirna", "regulates", "cna"].edge_index = dense_to_coo(mirna_cna)
-        #
-        # # Add mRNA-CNA interactions
-        # if "mrna" in omic_features and "cna" in omic_features:
-        #     mc_A = self._get_gene_interactions(omic_features["mrna"], omic_features["cna"])
-        #     data["mrna", "interacts", "cna"].edge_index = dense_to_coo(mc_A)
-
-        # Make graph undirected
-        # data = T.ToUndirected()(data)
 
         # Add metadata
         data.omics = list(omic_features.keys())
