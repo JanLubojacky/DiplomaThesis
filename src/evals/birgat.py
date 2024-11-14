@@ -30,14 +30,6 @@ class BiRGATEvaluator(ModelEvaluator):
         """Create and return model instance with trial parameters"""
 
         # here we can select hyperparameters from the trial later
-        params = {
-            "hidden_channels": [200, 64, 64, 32, 32],
-            "heads": 2,
-            "dropout": 0.2,
-            "attention_dropout": 0.2,
-            "integrator_type": "attention",
-            "three_layers": True,
-        }
 
         self.model = BiRGAT(
             omic_channels=self.data_manager.omics,
@@ -45,12 +37,12 @@ class BiRGATEvaluator(ModelEvaluator):
             relations=self.data_manager.relations,
             input_dims=self.data_manager.input_dims,
             num_classes=self.data_manager.n_classes,
-            hidden_channels=params["hidden_channels"],
-            heads=params["heads"],
-            dropout=params["dropout"],
-            attention_dropout=params["attention_dropout"],
-            integrator_type=params["integrator_type"],
-            three_layers=params["three_layers"],
+            hidden_channels=self.params["hidden_channels"],
+            heads=self.params["heads"],
+            dropout=self.params["dropout"],
+            attention_dropout=self.params["attention_dropout"],
+            integrator_type=self.params["integrator_type"],
+            three_layers=self.params["three_layers"],
         )
         self.trainer = GNNTrainer(
             model=self.model,

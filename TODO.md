@@ -39,6 +39,11 @@
 ### Ctvrtek necessities - St + Ct dopo
 - [ ] hezky grafy pro nejdulezitejsi biomarkry
 - [ ] enrichment analyzu pro nejdulezitejsi biomarkry
+  - enrichment analysis takes a set of "important" (diff exp or here selected by the models) genes as input,
+  a set of pathways with `pathway : {gene1, gene2, gene3}` as input and compares the fraction of genes in the differential set and in the background set for a pathway (fishers exact test + multiple testing correction) to find if there is a improportional fraction of genes that belong to a certain pathway in the differentially expressed genes
+  - with this we can detect overrepresented pathways
+  - it is also important to select a correct set of background genes (i.e. for MDS this will probably be genes that deal with blood)
+  - [gene set enrichment analysis](https://www.youtube.com/watch?v=egO7Lt92gDY&t) - probably better than simple PEA
 - [ ] interpretace a validace biomarkeru v literature
 - [ ] v obrazcich anotovat clustery
 

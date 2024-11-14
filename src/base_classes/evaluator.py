@@ -150,6 +150,15 @@ class ModelEvaluator(ABC):
         results_dict["model"] = row_name
         new_row = pl.DataFrame([results_dict])
 
+        pretty_names = {
+            "acc": "Accuracy",
+            "f1_macro": "Macro F1",
+            "f1_weighted": "Weighted F1",
+        }
+
+        # rename keys to pretty names
+        new_row = new_row.rename(pretty_names)
+
         if not os.path.exists(results_file):
             # Create new file
             new_row.write_csv(results_file)
