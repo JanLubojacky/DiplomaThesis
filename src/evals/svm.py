@@ -53,6 +53,9 @@ class SVMEvaluator(ModelEvaluator):
                 step=self.rfe_step,
                 n_features_to_select=self.rfe_n_features,
             )
+            if self.params.get("no_rfe"):
+                rfe = LinearSVC(**params)
+
         elif self.mode == "rbf":
             params = {
                 "C": trial.suggest_float(
