@@ -8,8 +8,9 @@ from src.base_classes.omic_data_loader import OmicDataManager, OmicDataLoader
 from src.gnn_utils.graph_building import dense_to_coo, create_diff_exp_connections_norm
 from src.gnn_utils.interactions import (
     gg_interactions,
-    get_mirna_gene_interactions,
     pp_interactions,
+    get_mirna_gene_interactions,
+    get_mirna_genes_circrna_interactions,
     ensembl_ids_to_gene_names,
 )
 
@@ -157,6 +158,17 @@ class BipartiteGraphDataManager(OmicDataManager):
                 mirna_gene_names,mrna_gene_names, mirna_mrna_db="interaction_data/mirna_genes_mrna.csv"
             )
             data["mirna_feature", "regulates", "mrna_feature"].edge_index = dense_to_coo(mirna_mrna)
+
+        # circrna-mirna interactions
+        if "circrna" in omic_features and "mirna" in omic_features:
+            mirna_circrna_matrix = get_mirna_genes_circrna_interactions(
+                ensembl_ids=omic_features["mirna"],
+                circrna_names=omic_features["circrna"],
+                mirna_circrna_interactions="interaction_data/circrna_mirna_interactions_mirbase.csv",
+            )
+
+            data["circrna_feature", "regulates", "mirna_feature"].edge_index = dense_to_coo(mirna_circrna_matrix)
+
 
         # Add metadata
         data.omics = list(omic_features.keys())

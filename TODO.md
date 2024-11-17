@@ -20,7 +20,7 @@
   - [x] MLP
   - [ ] GNN models
     - [x] sample based gnn - Po
-    - [ ] bipartite gnn - Po
+    - [x] bipartite gnn - Po
 - [ ] differential expression analysis with DeSeq2 (probably could reuse the one that is already finished)
 
 ### Running experiments
@@ -30,11 +30,11 @@
 
 ### Visualizing outputs from experiments
 - [ ] feature importance
-- [ ] parsers for processing the experiment results
-  - [ ] create some pretty seaborn graphs from that
-  - [ ] create gene network graphs from the most important features (structural markers)
-- [ ] visualizer for creating output plots from the output table
 - [ ] comparision of predictions given an omic channel, a couple of graphs to show how the predictions improve as we add more channels
+- [ ] Evaluation of adding different channels to the model
+  - We select XGBoost since it is the best out of the baseline models and the GNNs
+  - For each we rank the omic channels based on their performance on each one and add them to the model in that order
+  - And we look at the resulting performance
 
 ### Ctvrtek necessities - St + Ct dopo
 - [ ] hezky grafy pro nejdulezitejsi biomarkry

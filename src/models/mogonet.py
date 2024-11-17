@@ -50,6 +50,8 @@ class MOGONET(torch.nn.Module):
             else:
                 raise ValueError(f"Invalid encoder type: {encoder_type}")
 
+        print("Using: {} integrator".format(integrator_type))
+
         if integrator_type == "linear":
             self.integrator = LinearIntegration(
                 n_views=len(omics),

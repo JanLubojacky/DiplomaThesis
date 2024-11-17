@@ -37,20 +37,25 @@ def get_mirna_genes_circrna_interactions(
     )
 
     # load circna-mirna interaction file
-    cm_i_df = pl.read_csv(mirna_circrna_interactions)
-    cm_i_df = cm_i_df.filter(
+    circrna_mirna_interactions_df = pl.read_csv(mirna_circrna_interactions)
+    circrna_mirna_interactions_df = circrna_mirna_interactions_df.filter(
         pl.col("mirna_genes").is_in(mirna_names)
         & pl.col("circRNA").is_in(circrna_names)
     )
 
     # create interaction matrix
-    A = torch.zeros((len(mirna_names), len(circrna_names)))
+    A = torch.zeros((len(circrna_names), len(mirna_names)))
 
     # loop over all interactions
-    for mirna, circrna in zip(cm_i_df["mirna"], cm_i_df["circrna"]):
+    for mirna, circrna in zip(
+        circrna_mirna_interactions_df["mirna_genes"],
+        circrna_mirna_interactions_df["circRNA"],
+    ):
         mirna_idx = mirna_names.index(mirna)
         circrna_idx = circrna_names.index(circrna)
-        A[mirna_idx, circrna_idx] = 1
+        A[circrna_idx, mirna_idx] = 1
+
+    return A
 
 
 def get_mirna_gene_interactions(

@@ -213,9 +213,9 @@ class VCDN(torch.nn.Module):
             raise NotImplementedError
             # TODO
             # use a convolutional layer to classify the samples, kernel dim is (view_dim, ) * n_views
-            self.classifier = torch.nn.Conv2d(
-                n_views, n_classes, kernel_size=(1, view_dim)
-            )
+            # self.classifier = torch.nn.Conv2d(
+            #     n_views, n_classes, kernel_size=(1, view_dim)
+            # )
         else:
             self.lin1 = pyg.nn.Linear(-1, hidden_dim, weight_initializer="glorot")
             # use a single linear layer to classify the samples
@@ -235,9 +235,6 @@ class VCDN(torch.nn.Module):
             cfdt = construct_cross_feature_discovery_tensor(x, flatten_output=False)
         else:
             cfdt = construct_cross_feature_discovery_tensor(x)
-
-        # print(cfdt.shape)
-        # sys.exit()
 
         x = self.lin1(cfdt)
         x = F.relu(x)

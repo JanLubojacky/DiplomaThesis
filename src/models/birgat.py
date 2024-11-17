@@ -23,7 +23,9 @@ class BiRGAT(torch.nn.Module):
         attention_dropout,
         integrator_type="linear",
         three_layers=False,
+        seed=12345,
     ) -> None:
+        torch.manual_seed(seed)
         super().__init__()
 
         self.omic_channels = omic_channels
