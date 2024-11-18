@@ -28,6 +28,10 @@
 - [ ] MDS risk - Ut
 - [ ] MDS mutation - Ut
 
+- experiments include:
+  - comparision of all models on single omic channel
+  - comparision of xgboost and the gnn models on multiple omic channels
+
 ### Visualizing outputs from experiments
 - [ ] feature importance
 - [ ] comparision of predictions given an omic channel, a couple of graphs to show how the predictions improve as we add more channels
@@ -36,7 +40,7 @@
   - For each we rank the omic channels based on their performance on each one and add them to the model in that order
   - And we look at the resulting performance
 
-### Ctvrtek necessities - St + Ct dopo
+### Necessities
 - [ ] hezky grafy pro nejdulezitejsi biomarkry
 - [ ] enrichment analyzu pro nejdulezitejsi biomarkry
   - enrichment analysis takes a set of "important" (diff exp or here selected by the models) genes as input,
@@ -52,3 +56,4 @@
   - [ ] BRCA
   - [ ] LGG
 - [ ] pridat feature gnn
+- [ ] increase the number of splits to obtain better estimates, especially useful for tasks such as mutation and risk where there is not very many samples

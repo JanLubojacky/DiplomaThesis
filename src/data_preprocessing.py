@@ -57,11 +57,19 @@ class OmicDataSplitter:
         os.makedirs(os.path.join(output_dir, "train"), exist_ok=True)
         os.makedirs(os.path.join(output_dir, "test"), exist_ok=True)
 
+        sample_ids_x = df.columns
+        sample_ids_y = y_df["sample_ids"].to_list()
+        n_rows_before = df.shape[1] - len(annotation_cols)
+
+        # out of the columns in df, only keep the ones in sample_ids_y
+        df = df.select(annotation_cols + sample_ids_y)
+        n_rows_after = df.shape[1] - len(annotation_cols)
+        print(f"Only {n_rows_after} samples out of {n_rows_before} found in y_df")
+
         # make sure that the columns are aligned
         sample_ids_x = df.columns
         for annotation_col in annotation_cols:
             sample_ids_x.remove(annotation_col)
-        sample_ids_y = y_df["sample_ids"].to_list()
         if not sample_ids_x == sample_ids_y:
             raise ValueError("sample_ids_x and sample_ids_y are not aligned")
 

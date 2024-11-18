@@ -5,7 +5,8 @@ import numpy as np
 def plot_experiment_metrics(
     experiment_files: dict, 
     metrics = ['Accuracy', 'Macro F1', 'Weighted F1'], 
-    metrics_std = ['acc_std', 'f1_macro_std', 'f1_weighted_std']
+    metrics_std = ['acc_std', 'f1_macro_std', 'f1_weighted_std'],
+    save_file: str | None = None,
 ):
     results = {}
     first_df = pl.read_csv(next(iter(experiment_files.values())))
@@ -23,12 +24,12 @@ def plot_experiment_metrics(
             }
 
     # Create plots
-    fig, axes = plt.subplots(1, 3, figsize=(20, 6))
+    fig, axes = plt.subplots(3, 1, figsize=(6, 10))
     fig.subplots_adjust(wspace=0.3)
     
     exp_names = list(results.keys())
     x = np.arange(len(exp_names))
-    colors = plt.cm.tab10(np.linspace(0, 1, len(models)))
+    colors = plt.cm.viridis(np.linspace(0, 1, len(models)))
     width = 0.12  # Width of bars
     
     for idx, (metric, ax) in enumerate(zip(metrics, axes)):
@@ -40,29 +41,34 @@ def plot_experiment_metrics(
             metric_errors = [results[exp][model]['stds'][idx] for exp in exp_names]
             
             # Create bars with error bars
-            ax.bar(x + offsets[model_idx], 
-                  metric_values,
-                  width,
-                  yerr=metric_errors,
-                  label=model,
-                  color=colors[model_idx],
-                  capsize=5,
-                  error_kw={'elinewidth': 1})
+            ax.bar(
+                x + offsets[model_idx], 
+                metric_values,
+                width,
+                yerr=metric_errors,
+                label=model,
+                color=colors[model_idx],
+                capsize=4,
+                error_kw={'elinewidth': 1}
+            )
         
         ax.set_xticks(x)
-        ax.set_xticklabels(exp_names, rotation=0)
+        ax.set_xticklabels(exp_names, rotation=0, fontsize=12)
         ax.set_title(metric)
         ax.grid(True, alpha=0.2)
         
         # Set y-axis limits
         all_values = [results[exp][model]['means'][idx] for exp in exp_names for model in models]
         all_errors = [results[exp][model]['stds'][idx] for exp in exp_names for model in models]
-        ymin = min(all_values) - max(all_errors) - 0.05
-        ymax = max(all_values) + max(all_errors) - 0.05
+        ymin = 0.5 # min(all_values) - max(all_errors)# - 0.05
+        ymax = 1.0 # max(all_values) + max(all_errors)#  + 0.05
         ax.set_ylim(ymin, ymax)
         
-    # Add legend
-    ax.legend(bbox_to_anchor=(1.25, 1), loc='upper right')
+        # Add legend
+        ax.legend(loc='lower left', fontsize=8)
     
     plt.tight_layout()
+    if save_file is not None:
+        plt.savefig(save_file, dpi=400)
+
     return fig
