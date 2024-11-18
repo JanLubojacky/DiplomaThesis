@@ -57,3 +57,4 @@
   - [ ] LGG
 - [ ] pridat feature gnn
 - [ ] increase the number of splits to obtain better estimates, especially useful for tasks such as mutation and risk where there is not very many samples
+- [ ] add learning rate scheduler to the gnn trainer

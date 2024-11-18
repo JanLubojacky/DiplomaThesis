@@ -26,9 +26,9 @@ def generate_metrics_table(
     # Default metrics mapping if none provided
     if metrics_mapping is None:
         metrics_mapping = {
-            "Accuracy": ("acc", "acc_std"),
-            "F1 Macro": ("f1_macro", "f1_macro_std"),
-            "F1 Weighted": ("f1_weighted", "f1_weighted_std"),
+            "Accuracy": ("Accuracy", "acc_std"),
+            "F1 Macro": ("Macro F1", "f1_macro_std"),
+            "F1 Weighted": ("Weighted F1", "f1_weighted_std"),
         }
 
     # Read the CSV file
