@@ -23,6 +23,7 @@ dependencies = [
     "gtftools>=0.9.0",
     "fastexcel>=0.12.0",
     "pandas>=2.2.3",
+    "networkx>=3.4.2",
 ]
 
 [tool.pyright]

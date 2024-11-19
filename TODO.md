@@ -23,15 +23,6 @@
     - [x] bipartite gnn - Po
 - [ ] differential expression analysis with DeSeq2 (probably could reuse the one that is already finished)
 
-### Running experiments
-- [ ] MDS disease - Ut
-- [ ] MDS risk - Ut
-- [ ] MDS mutation - Ut
-
-- experiments include:
-  - comparision of all models on single omic channel
-  - comparision of xgboost and the gnn models on multiple omic channels
-
 ### Visualizing outputs from experiments
 - [ ] feature importance
 - [ ] comparision of predictions given an omic channel, a couple of graphs to show how the predictions improve as we add more channels

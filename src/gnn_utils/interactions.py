@@ -27,14 +27,18 @@ def mature_mirnas_to_mirna_genes(mature_mirnas: list[str]):
 
 
 def get_mirna_genes_circrna_interactions(
-    ensembl_ids,
     circrna_names,
+    ensembl_ids=None,
     mirna_circrna_interactions="interaction_data/circrna_mirna_interactions_mirbase.csv",
+    mirna_names=None,
 ):
-    # convert ensemnl ids to mirna names
-    mirna_names = ensembl_ids_to_gene_names(
-        ensembl_ids, map_file="interaction_data/gene_id_to_mirna_name.csv"
-    )
+    if mirna_names is None and ensembl_ids is not None:
+        # convert ensemnl ids to mirna names
+        mirna_names = ensembl_ids_to_gene_names(
+            ensembl_ids, map_file="interaction_data/gene_id_to_mirna_name.csv"
+        )
+    if mirna_names is None:
+        raise ValueError("mirna_names or ensembl_ids must be provided")
 
     # load circna-mirna interaction file
     circrna_mirna_interactions_df = pl.read_csv(mirna_circrna_interactions)
