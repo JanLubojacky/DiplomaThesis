@@ -51,6 +51,13 @@
 - [ ] interpretace a validace biomarkeru v literature
 - [ ] v obrazcich anotovat clustery
 
+### Feature importances
+- [ ] use the best model from each task
+- [ ] train it with all the omics / (or with the best configuration?)
+- [ ] train it on all samples with the best parameters
+- [ ] extract the feature importances from the model
+- [ ] create the graph from the importances
+
 ### For later
 - [ ] prepocitat vsechno pro nove stazene datasety
   - [ ] BRCA
@@ -58,3 +65,5 @@
 - [ ] pridat feature gnn
 - [ ] increase the number of splits to obtain better estimates, especially useful for tasks such as mutation and risk where there is not very many samples
 - [ ] add learning rate scheduler to the gnn trainer
+- [ ] feature importances could be accumulated across the cross validation splits to get a more robust estimate
+- [ ] use standard scaler instead of minmax scaler and recompute everything

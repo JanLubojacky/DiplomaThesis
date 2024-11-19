@@ -9,27 +9,6 @@ from sklearn.metrics import accuracy_score, f1_score
 from src.base_classes.omic_data_loader import OmicDataManager
 
 
-def is_strictly_better(metrics1: dict, metrics2: dict) -> bool:
-    """
-    Returns:
-        True if metrics2 is strictly better than metrics1
-        False otherwise
-    """
-
-    # Split metrics and their standard deviations
-    base_metrics = ["acc", "f1_macro", "f1_weighted"]
-
-    # Check if any performance metric is worse (lower) in metrics2
-    for metric in base_metrics:
-        if metrics2[metric] < metrics1[metric]:
-            return False
-
-    # Check if at least one metric is strictly better
-    is_any_better = any(metrics2[metric] > metrics1[metric] for metric in base_metrics)
-
-    return is_any_better
-
-
 class ModelEvaluator(ABC):
     def __init__(
         self,
@@ -91,14 +70,7 @@ class ModelEvaluator(ABC):
                 if self.verbose:
                     print(f"New best score: {current_score:.3f}")
                     self.print_best_results()
-
-            # # Update best results if current score is strictly better
-            # if is_strictly_better(self.best_results, mean_scores):
-            #     self.best_results.update(mean_scores)
-            #     self.best_results.update(std_scores)
-            #     if self.verbose:
-            #         print(f"New best score: {current_score:.3f}")
-            #         self.print_best_results()
+                    print(fold_scores)
 
             return current_score
 
@@ -186,3 +158,4 @@ class ModelEvaluator(ABC):
     def test_model(self, test_x, test_y) -> dict:
         """Test model implementation"""
         pass
+

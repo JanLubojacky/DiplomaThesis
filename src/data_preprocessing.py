@@ -30,7 +30,10 @@ class OmicDataSplitter:
 
     then annotation_cols would be ['GENE_ID', 'GENE_NAME']
 
-    and y would be a polars series of lenght N where N is the number of samples
+    and y would be a polars dataframe with the following columns:
+
+    | sample_ids | class |
+    | :--------: | :---- |
 
     Args:
         df: polars DataFrame
@@ -172,3 +175,87 @@ class OmicDataSplitter:
             # write to output directory
             train_df.write_csv(os.path.join(self.output_dir, "train", f"train_{i}.csv"))
             test_df.write_csv(os.path.join(self.output_dir, "test", f"test_{i}.csv"))
+
+
+class FullOmicDataProcessor:
+    """
+    Processes the full dataset without splitting it into train and test sets.
+    Useful for fitting models to the full dataset after evaluation to obtain feature importances.
+    """
+    def __init__(
+        self,
+        df: pl.DataFrame,
+        y_df: pl.DataFrame,
+        annotation_cols: list,
+        output_dir: str,
+        n_features: int = 100,
+    ):
+        os.makedirs(output_dir, exist_ok=True)
+
+        sample_ids_x = df.columns
+        sample_ids_y = y_df["sample_ids"].to_list()
+        n_rows_before = df.shape[1] - len(annotation_cols)
+
+        df = df.select(annotation_cols + sample_ids_y)
+        n_rows_after = df.shape[1] - len(annotation_cols)
+        print(f"Only {n_rows_after} samples out of {n_rows_before} found in y_df")
+
+        sample_ids_x = df.columns
+        for annotation_col in annotation_cols:
+            sample_ids_x.remove(annotation_col)
+        if not sample_ids_x == sample_ids_y:
+            raise ValueError("sample_ids_x and sample_ids_y are not aligned")
+
+        self.df = df
+        self.X = self.df.drop(annotation_cols).to_numpy().T
+        self.y_df = y_df
+        self.n_features = n_features
+        self.annotation_cols = annotation_cols
+        self.output_dir = output_dir
+        self.feature_names = df[annotation_cols[0]].to_list()
+
+    def normalize(self, X: np.ndarray, type="minmax") -> np.ndarray:
+        match type:
+            case "minmax":
+                scaler = MinMaxScaler()
+            case "standardization":
+                scaler = StandardScaler()
+            case _:
+                raise ValueError("type must be either 'minmax' or 'standardization'")
+
+        return scaler.fit_transform(X)
+
+    def select_features(
+        self, X: np.ndarray, y: np.ndarray, type="mrmr"
+    ) -> pl.DataFrame:
+        match type:
+            case "variance":
+                raise NotImplementedError()
+            case "mrmr":
+                df = pd.DataFrame(X, columns=self.feature_names)
+                class_df = pd.Series(y, name="class")
+                selected_features = mrmr_classif(df, class_df, K=self.n_features)
+                processed_df = pl.DataFrame(df).select(selected_features)
+            case _:
+                raise ValueError("type must be either 'variance' or 'mrmr'")
+
+        return processed_df
+
+    def process_data(self):
+        y = self.y_df["class"].to_numpy()
+
+        # Normalize data
+        X_normalized = self.normalize(self.X)
+
+        # Feature selection
+        processed_df = self.select_features(X_normalized, y)
+
+        # Add sample IDs and classes
+        processed_df = processed_df.with_columns(
+            [pl.Series("sample_ids", self.y_df["sample_ids"]), pl.Series("class", y)]
+        )
+
+        # Save to output directory
+        processed_df.write_csv(os.path.join(self.output_dir, "processed_data.csv"))
+
+        return processed_df
