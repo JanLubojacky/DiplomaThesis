@@ -57,7 +57,8 @@ def create_multi_omic_network(
     return G
 
 
-def plot_multi_omic_network(G, figsize=(20, 10), seed=42):
+def plot_multi_omic_network(G, figsize=(20, 10), seed=42, k=5, iterations=1000):
+
     # Create figure with a specific layout for the colorbar
     fig = plt.figure(figsize=figsize)
     gs = plt.GridSpec(1, 20, figure=fig)
@@ -65,7 +66,7 @@ def plot_multi_omic_network(G, figsize=(20, 10), seed=42):
     ax_cbar = fig.add_subplot(gs[:, 19])  # Colorbar on the right
 
     # Set up layout
-    pos = nx.fruchterman_reingold_layout(G, scale=1, k=5, iterations=1000, seed=seed)
+    pos = nx.fruchterman_reingold_layout(G, scale=1, k=k, iterations=iterations, seed=seed)
 
     # Define edge colors
     edge_colors = {"mRNA-mRNA": "red", "miRNA-mRNA": "blue", "circRNA-miRNA": "green"}
@@ -102,7 +103,7 @@ def plot_multi_omic_network(G, figsize=(20, 10), seed=42):
 
         # Get node sizes and colors based on importance
         node_sizes = [2000 * node_importances[node] / max_importance for node in nodes]
-        node_colors = [plt.cm.viridis(norm(node_importances[node])) for node in nodes]
+        node_colors = [plt.cm.RdYlBu_r(norm(node_importances[node])) for node in nodes]
 
         # Get node shapes
         node_shapes = [G.nodes[node]["shape"] for node in nodes]
@@ -124,7 +125,7 @@ def plot_multi_omic_network(G, figsize=(20, 10), seed=42):
     nx.draw_networkx_labels(G, pos, font_size=10, ax=ax_main)
 
     # Add colorbar
-    ColorbarBase(ax_cbar, cmap=plt.cm.viridis, norm=norm, label="Feature Importance")
+    ColorbarBase(ax_cbar, cmap=plt.cm.RdYlBu_r, norm=norm, label="Feature Importance")
 
     # Add legend
     legend_elements = [

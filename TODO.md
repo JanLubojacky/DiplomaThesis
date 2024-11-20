@@ -49,6 +49,9 @@
 - [ ] extract the feature importances from the model
 - [ ] create the graph from the importances
 
+### Target validation
+- [mirnas](https://www.cuilab.cn/hmdd)
+
 ### For later
 - [ ] prepocitat vsechno pro nove stazene datasety
   - [ ] BRCA
@@ -58,3 +61,4 @@
 - [ ] add learning rate scheduler to the gnn trainer
 - [ ] feature importances could be accumulated across the cross validation splits to get a more robust estimate
 - [ ] use standard scaler instead of minmax scaler and recompute everything
+- [ ] relationship between circrnas and mrnas https://circinteractome.nia.nih.gov/
