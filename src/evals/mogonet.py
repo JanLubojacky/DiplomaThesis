@@ -62,3 +62,11 @@ class MOGONETEvaluator(ModelEvaluator):
         y_true = data.y[data.test_mask].numpy()
         return self._calculate_metrics(y_true, y_pred)
 
+    def get_feature_importances(self):
+        ...
+
+        # per fold:
+        #   run permutation importance
+        #   measure the drop in loss for each feature
+        #   accumulate across all folds
+

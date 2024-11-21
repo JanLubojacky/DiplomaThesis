@@ -57,7 +57,7 @@ def create_multi_omic_network(
     return G
 
 
-def plot_multi_omic_network(G, figsize=(20, 10), seed=42, k=5, iterations=1000):
+def plot_multi_omic_network(G, figsize=(20, 10), seed=42, k=5, iterations=1000, scale=1):
 
     # Create figure with a specific layout for the colorbar
     fig = plt.figure(figsize=figsize)
@@ -66,7 +66,9 @@ def plot_multi_omic_network(G, figsize=(20, 10), seed=42, k=5, iterations=1000):
     ax_cbar = fig.add_subplot(gs[:, 19])  # Colorbar on the right
 
     # Set up layout
-    pos = nx.fruchterman_reingold_layout(G, scale=1, k=k, iterations=iterations, seed=seed)
+    pos = nx.fruchterman_reingold_layout(G, scale=scale, k=k, iterations=iterations, seed=seed)
+    # pos = nx.planar_layout(G, scale=1)
+    # pos = nx.kamada_kawai_layout(G, scale=1)
 
     # Define edge colors
     edge_colors = {"mRNA-mRNA": "red", "miRNA-mRNA": "blue", "circRNA-miRNA": "green"}
