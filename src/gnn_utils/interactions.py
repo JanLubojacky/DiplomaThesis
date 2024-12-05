@@ -228,3 +228,34 @@ def gg_interactions(
         print("WARNING: No interactions found, are all inputs correct?")
 
     return interactions_A
+
+
+def tf_links(
+    gene_a,
+    gene_b,
+    tflinksdb="interaction_data/TFLink_Homo_sapiens_interactions_SS_simpleFormat_v1.0.tsv",
+):
+    tflinks = pl.read_csv(tflinksdb, separator="\t", infer_schema_length=10000)
+    all_genes = gene_a + gene_b
+    tflinks.select(
+        pl.col("Name.TF").is_in(all_genes) & pl.col("Name.Target").is_in(all_genes)
+    )
+
+    A = torch.zeros((len(gene_a), len(gene_b)))
+
+    tf_idx = tflinks.columns.index("Name.TF")
+    target_idx = tflinks.columns.index("Name.Target")
+
+    for row in tflinks.iter_rows():
+        try:
+            A[gene_a.index(row[tf_idx]), gene_b.index(row[target_idx])] = 1
+        except ValueError:
+            try:
+                A[gene_a.index(row[target_idx]), gene_b.index(row[tf_idx])] = 1
+            except ValueError:
+                pass
+
+    if A.sum() == 0:
+        print("WARNING: No interactions found, are all inputs correct?")
+
+    return A

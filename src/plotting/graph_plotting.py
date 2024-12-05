@@ -33,7 +33,9 @@ def create_multi_omic_network(
     # mRNA-mRNA interactions
     mrna_genes = list(mrna_dict.keys())
     for i in range(len(mrna_genes)):
-        for j in range(i + 1, len(mrna_genes)):
+        for j in range(len(mrna_genes)):
+            # if i == j:
+            #     continue
             if mrna_A[i, j] == 1:
                 G.add_edge(mrna_genes[i], mrna_genes[j], edge_type="mRNA-mRNA")
 
@@ -54,21 +56,35 @@ def create_multi_omic_network(
     # Remove isolated nodes
     G.remove_nodes_from(list(nx.isolates(G)))
 
+    # Find nodes that only have self-loops
+    nodes_to_remove = []
+    for node in G.nodes():
+        neighbors = list(G.neighbors(node))
+        # Check if the node only has itself as a neighbor
+        if len(neighbors) == 1 and neighbors[0] == node:
+            nodes_to_remove.append(node)
+
+    # Remove the identified nodes
+    G.remove_nodes_from(nodes_to_remove)
+
     return G
 
 
-def plot_multi_omic_network(G, figsize=(20, 10), seed=42, k=5, iterations=1000, scale=1):
-
+def plot_multi_omic_network(
+    G, max_iter, figsize=(20, 20), seed=42, title="Multi-omic Interaction Network"
+):
     # Create figure with a specific layout for the colorbar
     fig = plt.figure(figsize=figsize)
-    gs = plt.GridSpec(1, 20, figure=fig)
-    ax_main = fig.add_subplot(gs[:, :19])  # Main plot takes up most of the space
-    ax_cbar = fig.add_subplot(gs[:, 19])  # Colorbar on the right
+    gs = plt.GridSpec(1, figsize[0], figure=fig)
+    ax_main = fig.add_subplot(
+        gs[:, : figsize[0] - 1]
+    )  # Main plot takes up most of the space
+    ax_cbar = fig.add_subplot(gs[:, figsize[0] - 1])  # Colorbar on the right
 
     # Set up layout
-    pos = nx.fruchterman_reingold_layout(G, scale=scale, k=k, iterations=iterations, seed=seed)
-    # pos = nx.planar_layout(G, scale=1)
-    # pos = nx.kamada_kawai_layout(G, scale=1)
+    pos = nx.forceatlas2_layout(
+        G, max_iter=max_iter, strong_gravity=True, dissuade_hubs=True, seed=seed
+    )
 
     # Define edge colors
     edge_colors = {"mRNA-mRNA": "red", "miRNA-mRNA": "blue", "circRNA-miRNA": "green"}
@@ -104,7 +120,7 @@ def plot_multi_omic_network(G, figsize=(20, 10), seed=42, k=5, iterations=1000, 
             continue
 
         # Get node sizes and colors based on importance
-        node_sizes = [2000 * node_importances[node] / max_importance for node in nodes]
+        node_sizes = [3000 * node_importances[node] / max_importance for node in nodes]
         node_colors = [plt.cm.RdYlBu_r(norm(node_importances[node])) for node in nodes]
 
         # Get node shapes
@@ -124,7 +140,7 @@ def plot_multi_omic_network(G, figsize=(20, 10), seed=42, k=5, iterations=1000, 
         )
 
     # Add labels with smaller font size for better visibility
-    nx.draw_networkx_labels(G, pos, font_size=10, ax=ax_main)
+    nx.draw_networkx_labels(G, pos, font_size=12, ax=ax_main)
 
     # Add colorbar
     ColorbarBase(ax_cbar, cmap=plt.cm.RdYlBu_r, norm=norm, label="Feature Importance")
@@ -141,7 +157,7 @@ def plot_multi_omic_network(G, figsize=(20, 10), seed=42, k=5, iterations=1000, 
             color="w",
             label="mRNA",
             markerfacecolor="gray",
-            markersize=10,
+            markersize=12,
         ),
         plt.Line2D(
             [0],
@@ -150,7 +166,7 @@ def plot_multi_omic_network(G, figsize=(20, 10), seed=42, k=5, iterations=1000, 
             color="w",
             label="miRNA",
             markerfacecolor="gray",
-            markersize=10,
+            markersize=12,
         ),
         plt.Line2D(
             [0],
@@ -159,12 +175,14 @@ def plot_multi_omic_network(G, figsize=(20, 10), seed=42, k=5, iterations=1000, 
             color="w",
             label="circRNA",
             markerfacecolor="gray",
-            markersize=10,
+            markersize=12,
         ),
     ]
-    ax_main.legend(handles=legend_elements, loc="upper right", bbox_to_anchor=(1, 1))
+    ax_main.legend(
+        handles=legend_elements, loc="upper right", bbox_to_anchor=(1, 1), fontsize=12
+    )
 
-    ax_main.set_title("Multi-omic Interaction Network")
+    ax_main.set_title(title, fontsize=16)
     ax_main.axis("off")
 
     plt.tight_layout()

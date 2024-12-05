@@ -110,9 +110,7 @@ class XGBoostEvaluator(ModelEvaluator):
                 )
             parameters = self.best_params
 
-        # Initialize feature importance accumulator
-        feature_names = self.data_manager.feature_names
-        importance_accumulator = {feature: 0.0 for feature in feature_names}
+        importance_accumulator = {}
 
         # Prepare model parameters
         model_params = {
@@ -128,6 +126,9 @@ class XGBoostEvaluator(ModelEvaluator):
         for fold_idx in range(self.data_manager.n_splits):
             # Get train and test splits for this fold
             train_x, test_x, train_y, test_y = self.data_manager.get_split(fold_idx)
+
+            # get feature names for the current fold
+            feature_names = self.data_manager.feature_names
 
             scaler = StandardScaler()
             train_x = scaler.fit_transform(train_x)
@@ -150,27 +151,13 @@ class XGBoostEvaluator(ModelEvaluator):
             print(weights)
 
             # Aggregate absolute weights across all classes for each feature
-            for feature_idx, feature_name in enumerate(feature_names):
+            for feature_name in feature_names:
                 feature_importance = 0.0
                 for class_idx in range(self.n_classes):
                     feature_importance += abs(weights[feature_name][class_idx])
 
+                if feature_name not in importance_accumulator:
+                    importance_accumulator[feature_name] = 0
                 importance_accumulator[feature_name] += feature_importance
 
         return importance_accumulator
-        # # Average importance scores across folds
-        # n_splits = float(self.data_manager.n_splits)
-        # importance_dict = {
-        #     feature: importance / n_splits
-        #     for feature, importance in importance_accumulator.items()
-        # }
-        #
-        # # Normalize importances to sum to 1.0
-        # total_importance = sum(importance_dict.values())
-        # if total_importance > 0:  # Avoid division by zero
-        #     importance_dict = {
-        #         feature: importance / total_importance
-        #         for feature, importance in importance_dict.items()
-        #     }
-        #
-        # return importance_dict

@@ -14,12 +14,14 @@ class GNNTrainer:
         loss_fn: torch.nn.Module,
         params: Dict[str, Any] = {},
         scheduler: Optional[torch.optim.lr_scheduler._LRScheduler] = None,
+        save_model_path=None,
     ):
         self.model = model
         self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.params = params
+        self.save_model_path = save_model_path
 
         # Initialize best metrics tracking
         self.best_val_score = -float("inf")
@@ -88,16 +90,15 @@ class GNNTrainer:
 
     def save_model(self, save_path: str) -> None:
         """Save the best model state."""
-        if self.best_model_state is not None:
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            torch.save(
-                {
-                    "model_state_dict": self.best_model_state,
-                    "best_val_score": self.best_val_score,
-                },
-                save_path,
-            )
-            print(f"Saved best model to {save_path}")
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        torch.save(
+            {
+                "model_state_dict": self.model.state_dict(),
+                "best_val_score": self.best_val_score,
+            },
+            save_path,
+        )
+        print(f"Saved new best model to {save_path}")
 
     def train(
         self,
@@ -131,9 +132,8 @@ class GNNTrainer:
                 if val_score > self.best_val_score:
                     self.best_val_score = val_score
                     self.best_pred = val_pred
-                    # self.best_model_state = self.model.state_dict()
-                    # if save_path:
-                    #     self.save_model(save_path)
+                    if save_path:
+                        self.save_model(save_path)
 
                 if epoch % log_interval == 0:
                     # Get predictions for all splits

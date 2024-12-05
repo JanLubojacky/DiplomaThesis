@@ -1,0 +1,528 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d3" for="edge" attr.name="edge_type" attr.type="string" />
+  <key id="d2" for="node" attr.name="shape" attr.type="string" />
+  <key id="d1" for="node" attr.name="importance" attr.type="double" />
+  <key id="d0" for="node" attr.name="omic_type" attr.type="string" />
+  <graph edgedefault="undirected">
+    <node id="GNPDA1">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.6020983830094337</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="ZMAT3">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.5642179399728775</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="CREB5">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.5217209793627262</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="RHOU">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.47631348483264446</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="LZTS3">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.4633948393166065</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="SEMA3A">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.43643758445978165</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="EFNA3">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.4339506383985281</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="COL4A5">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.43093880265951157</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="ARRDC3">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.4265456907451153</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="HBA1">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.4138779528439045</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="HECW2">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.4119048975408077</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="ADGRB1">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.4103585686534643</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="FZD2">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.4034673999994993</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="PALLD">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.3951980657875538</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="HBA2">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.38460648618638515</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="KLF5">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.383824048563838</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="HBG2">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.38189198821783066</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="ZNF175">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.37822417728602886</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="NETO2">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.3693088795989752</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="GIMAP5">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.3465909957885742</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="GIMAP6">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.34523083828389645</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="KCNK5">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.34247674234211445</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="RELL1">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.33828877471387386</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="HIST1H2BD">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.3303073048591614</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="NEIL1">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.2822230290621519</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="MAF">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.2821365687996149</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="HBG1">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.2810395061969757</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="PTGIR">
+      <data key="d0">mRNA</data>
+      <data key="d1">0.2801175136119127</data>
+      <data key="d2">s</data>
+    </node>
+    <node id="MIR1205">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.682307280600071</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR185">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.5856828764081001</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR6889">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.5003720186650753</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR33B">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.3884745463728905</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR3134">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.35416246578097343</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR4729">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.3528008945286274</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR1296">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.35123738646507263</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR5010">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.3279516715556383</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR6832">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.32696592900902033</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR23A">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.3219478279352188</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR6809">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.29889521189033985</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR3121">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.28946850541979074</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR5087">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.28140042163431644</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR30E">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.2638448039069772</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR27A">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.23295663064345717</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR613">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.23208625987172127</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR5581">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.22857228852808475</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR1229">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.2280347989872098</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR4762">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.2188526252284646</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR4744">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.21830760687589645</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR548J">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.2017778279259801</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="MIR6821">
+      <data key="d0">miRNA</data>
+      <data key="d1">0.19321026466786861</data>
+      <data key="d2">o</data>
+    </node>
+    <node id="hsa_circ_0000296">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.5336423441767693</data>
+      <data key="d2">^</data>
+    </node>
+    <node id="hsa_circ_0000448">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.45725736021995544</data>
+      <data key="d2">^</data>
+    </node>
+    <node id="hsa_circ_0000443">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.4053328428417444</data>
+      <data key="d2">^</data>
+    </node>
+    <node id="hsa_circ_0000211">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.35448359698057175</data>
+      <data key="d2">^</data>
+    </node>
+    <node id="hsa_circ_0007592">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.3381087426096201</data>
+      <data key="d2">^</data>
+    </node>
+    <node id="hsa_circ_0000233">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.32625484094023705</data>
+      <data key="d2">^</data>
+    </node>
+    <node id="hsa_circ_0000386">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.3242770619690418</data>
+      <data key="d2">^</data>
+    </node>
+    <node id="hsa_circ_0032649">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.321629012003541</data>
+      <data key="d2">^</data>
+    </node>
+    <node id="hsa_circ_0017636">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.31559517979621887</data>
+      <data key="d2">^</data>
+    </node>
+    <node id="hsa_circ_0001181">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.2977185593917966</data>
+      <data key="d2">^</data>
+    </node>
+    <node id="hsa_circ_0006109">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.2908118311315775</data>
+      <data key="d2">^</data>
+    </node>
+    <node id="hsa_circ_0000014">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.2708966936916113</data>
+      <data key="d2">^</data>
+    </node>
+    <node id="hsa_circ_0001796">
+      <data key="d0">circRNA</data>
+      <data key="d1">0.24198698811233044</data>
+      <data key="d2">^</data>
+    </node>
+    <edge source="GNPDA1" target="MIR30E">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="GNPDA1" target="MIR4762">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="ZMAT3" target="MIR3121">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="ZMAT3" target="MIR27A">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="ZMAT3" target="MIR613">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="ZMAT3" target="MIR4744">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="CREB5" target="CREB5">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="CREB5" target="MIR6832">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="CREB5" target="MIR6809">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="CREB5" target="MIR3121">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="CREB5" target="MIR613">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="RHOU" target="NETO2">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="RHOU" target="RELL1">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="LZTS3" target="HIST1H2BD">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="SEMA3A" target="MIR33B">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="SEMA3A" target="MIR30E">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="SEMA3A" target="MIR5581">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="EFNA3" target="EFNA3">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="EFNA3" target="MIR30E">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="COL4A5" target="MIR23A">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="ARRDC3" target="HECW2">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="ARRDC3" target="MIR5010">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="HBA1" target="HBA2">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="HBA1" target="HBG2">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="HBA1" target="HBG1">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="HECW2" target="HECW2">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="HECW2" target="MIR3134">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="HECW2" target="MIR27A">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="HECW2" target="MIR6821">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="ADGRB1" target="MIR185">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="ADGRB1" target="MIR6889">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="FZD2" target="PTGIR">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="FZD2" target="MIR3121">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="PALLD" target="MIR6889">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="PALLD" target="MIR5087">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="HBA2" target="HBG2">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="HBA2" target="HBG1">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="KLF5" target="MIR4729">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="KLF5" target="MIR4744">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="HBG2" target="HBG2">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="HBG2" target="HBG1">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="ZNF175" target="MIR4729">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="ZNF175" target="MIR6809">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="NETO2" target="MIR613">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="GIMAP5" target="GIMAP6">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="KCNK5" target="MIR23A">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="KCNK5" target="MIR27A">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="RELL1" target="MIR6832">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="NEIL1" target="MAF">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="MAF" target="MAF">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="MAF" target="MIR6809">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="MAF" target="MIR548J">
+      <data key="d3">miRNA-mRNA</data>
+    </edge>
+    <edge source="PTGIR" target="PTGIR">
+      <data key="d3">mRNA-mRNA</data>
+    </edge>
+    <edge source="MIR1205" target="hsa_circ_0000448">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1205" target="hsa_circ_0007592">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1205" target="hsa_circ_0000233">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1205" target="hsa_circ_0000386">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1205" target="hsa_circ_0032649">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1205" target="hsa_circ_0001181">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1205" target="hsa_circ_0000014">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1205" target="hsa_circ_0001796">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1296" target="hsa_circ_0000211">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1296" target="hsa_circ_0017636">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1229" target="hsa_circ_0000296">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1229" target="hsa_circ_0000443">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1229" target="hsa_circ_0000233">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1229" target="hsa_circ_0001181">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+    <edge source="MIR1229" target="hsa_circ_0006109">
+      <data key="d3">circRNA-miRNA</data>
+    </edge>
+  </graph>
+</graphml>

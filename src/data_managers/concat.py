@@ -17,7 +17,8 @@ class CatOmicDataManager(OmicDataManager):
         train_x, _, train_y, _ = self.get_split(0)
         self.feature_dim = train_x.shape[1]
         self.n_classes = np.unique(train_y).shape[0]
-        self.feature_names = train_x.columns
+        # self.feature_names = train_x.columns
+        self.feature_names = None
 
     def get_split(self, fold_idx: int):
         """
@@ -49,5 +50,8 @@ class CatOmicDataManager(OmicDataManager):
         test_y = self.test_y
 
         self.reset_attributes()
+
+        assert train_x.columns == test_x.columns
+        self.feature_names = train_x.columns
 
         return train_x, test_x, train_y, test_y
