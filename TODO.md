@@ -51,6 +51,14 @@
 
 ### Target validation
 - [mirnas](https://www.cuilab.cn/hmdd)
+- [ctdbase](https://ctdbase.org/)
+  - da se mozna najit linky nejdriv v adatabazi a az pak podle toho dohledat podpurne clanky
+- [ ] GO terms
+- [ ] Validace v literature
+  - [ ] clanky -> pro vyznamne
+  - [ ] databaze mds related genu
+  - [ ] databaze mds related GO termu
+    - propojeni s enrichment analyzou GO term
 
 ### For later
 - [ ] prepocitat vsechno pro nove stazene datasety
