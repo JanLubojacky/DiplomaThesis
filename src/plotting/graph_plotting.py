@@ -71,7 +71,13 @@ def create_multi_omic_network(
 
 
 def plot_multi_omic_network(
-    G, max_iter, figsize=(20, 20), seed=42, title="Multi-omic Interaction Network"
+    G,
+    max_iter,
+    figsize=(20, 20),
+    seed=42,
+    title="Multi-omic Interaction Network",
+    jitter_tolerance=0.5,
+    gravity=0.5,
 ):
     # Create figure with a specific layout for the colorbar
     fig = plt.figure(figsize=figsize)
@@ -83,7 +89,13 @@ def plot_multi_omic_network(
 
     # Set up layout
     pos = nx.forceatlas2_layout(
-        G, max_iter=max_iter, strong_gravity=True, dissuade_hubs=True, seed=seed
+        G,
+        jitter_tolerance=jitter_tolerance,
+        gravity=gravity,
+        max_iter=max_iter,
+        strong_gravity=True,
+        dissuade_hubs=False,
+        seed=seed,
     )
 
     # Define edge colors
@@ -120,7 +132,7 @@ def plot_multi_omic_network(
             continue
 
         # Get node sizes and colors based on importance
-        node_sizes = [3000 * node_importances[node] / max_importance for node in nodes]
+        node_sizes = [5000 * node_importances[node] / max_importance for node in nodes]
         node_colors = [plt.cm.RdYlBu_r(norm(node_importances[node])) for node in nodes]
 
         # Get node shapes
@@ -140,7 +152,7 @@ def plot_multi_omic_network(
         )
 
     # Add labels with smaller font size for better visibility
-    nx.draw_networkx_labels(G, pos, font_size=12, ax=ax_main)
+    nx.draw_networkx_labels(G, pos, font_size=16, ax=ax_main)
 
     # Add colorbar
     ColorbarBase(ax_cbar, cmap=plt.cm.RdYlBu_r, norm=norm, label="Feature Importance")
@@ -157,7 +169,7 @@ def plot_multi_omic_network(
             color="w",
             label="mRNA",
             markerfacecolor="gray",
-            markersize=12,
+            markersize=14,
         ),
         plt.Line2D(
             [0],
@@ -166,7 +178,7 @@ def plot_multi_omic_network(
             color="w",
             label="miRNA",
             markerfacecolor="gray",
-            markersize=12,
+            markersize=14,
         ),
         plt.Line2D(
             [0],
@@ -175,14 +187,14 @@ def plot_multi_omic_network(
             color="w",
             label="circRNA",
             markerfacecolor="gray",
-            markersize=12,
+            markersize=14,
         ),
     ]
     ax_main.legend(
-        handles=legend_elements, loc="upper right", bbox_to_anchor=(1, 1), fontsize=12
+        handles=legend_elements, loc="upper right", bbox_to_anchor=(1, 1), fontsize=16
     )
 
-    ax_main.set_title(title, fontsize=16)
+    ax_main.set_title(title, fontsize=26)
     ax_main.axis("off")
 
     plt.tight_layout()

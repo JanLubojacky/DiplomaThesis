@@ -43,7 +43,7 @@ def plot_top_genes(importance_dict: dict, n_genes=10, title=None, save_file=None
     ax.set_yticklabels(gene_names)
 
     # Customize the plot
-    plt.title("Top Gene Feature Importance", pad=20, size=14)
+    plt.title(title, pad=20, size=14)
     plt.xlabel("Feature Importance Score", size=12)
     plt.ylabel("Gene Name", size=12)
 
