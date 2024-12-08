@@ -23,12 +23,15 @@
     - [ ] feature gnn
 - [ ] differential expression analysis with DeSeq2 (probably could reuse the one that is already finished)
 
-### Parameter tuning
+### Hyperparameter and model selection comparision
+- [ ] should improve the hyperparameter search report for the gnn models, this should also probably be done on each dataset separately
+- [ ] similarily the comparision of different model architectures and setups could also be improved
 
 ### Repeat experiments across datasets
 - [ ] BRCA
 - [ ] LGG
 - do not need to do the complete evaluation with everything if there isn't time, just the comparision of the performance of the models is enough
+- should also include the mRNA, circRNA, TE counts combination for MDS dataset
 
 ### Target validation
 - [mirnas](https://www.cuilab.cn/hmdd)
