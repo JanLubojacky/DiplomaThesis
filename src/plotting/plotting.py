@@ -28,7 +28,7 @@ def plot_experiment_metrics(
             }
 
     # Create plots
-    fig, axes = plt.subplots(3, 1, figsize=(6, 10))
+    fig, axes = plt.subplots(3, 1, figsize=(8, 13))
     fig.subplots_adjust(wspace=0.3)
 
     exp_names = list(results.keys())
@@ -54,13 +54,13 @@ def plot_experiment_metrics(
                 yerr=metric_errors,
                 label=model,
                 color=colors[model_idx],
-                capsize=4,
+                capsize=3,
                 error_kw={"elinewidth": 1},
             )
 
         ax.set_xticks(x)
-        ax.set_xticklabels(exp_names, rotation=0, fontsize=12)
-        ax.set_title(metric)
+        ax.set_xticklabels(exp_names, rotation=0, fontsize=10)
+        ax.set_title(metric, fontsize=12)
         ax.grid(True, alpha=0.2)
 
         # Set y-axis limits
@@ -71,16 +71,16 @@ def plot_experiment_metrics(
             results[exp][model]["stds"][idx] for exp in exp_names for model in models
         ]
         ymin = 0.5  # min(all_values) - max(all_errors)# - 0.05
-        ymax = 1.0  # max(all_values) + max(all_errors)#  + 0.05
+        ymax = 1.1  # max(all_values) + max(all_errors)#  + 0.05
         ax.set_ylim(ymin, ymax)
+        # set y_axis font size
+        ax.tick_params(axis="y", labelsize=10)
 
         # Add legend
-        ax.legend(loc="lower left", fontsize=8)
+        ax.legend(loc="lower left", fontsize=7)
 
     plt.tight_layout()
     if save_file is not None:
         plt.savefig(save_file, dpi=400)
 
     return fig
-
-

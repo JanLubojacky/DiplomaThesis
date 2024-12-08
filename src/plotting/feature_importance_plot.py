@@ -23,11 +23,8 @@ def plot_top_genes(importance_dict: dict, n_genes=10, title=None, save_file=None
     gene_names = [gene for gene, _ in sorted_genes]
     importance_values = [value for _, value in sorted_genes]
 
-    # Calculate figure height based on number of genes (0.4 inches per gene + padding)
-    fig_height = 10  # max(8, n_genes * 0.4 + 2)
-
     # Set up the plot style with adjusted figure size
-    plt.figure(figsize=(14, fig_height))
+    plt.figure(figsize=(12, n_genes * 0.25))
     sns.set_style("whitegrid")
 
     # Create the bar plot
@@ -36,16 +33,17 @@ def plot_top_genes(importance_dict: dict, n_genes=10, title=None, save_file=None
         range(len(gene_names)),
         importance_values,
         color=sns.color_palette("RdBu_r", n_colors=len(gene_names)),
+        height=0.8,
     )
 
     # Set y-axis labels (gene names)
     ax.set_yticks(range(len(gene_names)))
-    ax.set_yticklabels(gene_names)
+    ax.set_yticklabels(gene_names, fontsize=12)
 
     # Customize the plot
-    plt.title(title, pad=20, size=14)
-    plt.xlabel("Feature Importance Score", size=12)
-    plt.ylabel("Gene Name", size=12)
+    plt.title(title, pad=20, size=16)
+    plt.xlabel("Feature Importance Score", size=14)
+    plt.ylabel("Gene Name", size=14)
 
     # Add value labels on the bars with adjusted spacing
     max_val = max(abs(min(importance_values)), abs(max(importance_values)))
@@ -58,11 +56,11 @@ def plot_top_genes(importance_dict: dict, n_genes=10, title=None, save_file=None
             f"{value:.4f}",
             va="center",
             ha="left" if value >= 0 else "right",
-            fontsize=10,
+            fontsize=12,
         )
 
     # Adjust layout and margins
-    plt.margins(x=0.2)  # Add 20% padding on x-axis
+    plt.margins(x=0.1)  # Add 20% padding on x-axis
     plt.tight_layout()
 
     # save plot
