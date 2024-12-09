@@ -78,6 +78,7 @@ def plot_multi_omic_network(
     title="Multi-omic Interaction Network",
     jitter_tolerance=0.5,
     gravity=0.5,
+    colorbar_fontsize=16,
 ):
     # Create figure with a specific layout for the colorbar
     fig = plt.figure(figsize=figsize)
@@ -155,7 +156,11 @@ def plot_multi_omic_network(
     nx.draw_networkx_labels(G, pos, font_size=16, ax=ax_main)
 
     # Add colorbar
-    ColorbarBase(ax_cbar, cmap=plt.cm.RdYlBu_r, norm=norm, label="Feature Importance")
+    cbar = ColorbarBase(ax_cbar, cmap=plt.cm.RdYlBu_r, norm=norm)
+    # Modify colorbar label font size
+    cbar.ax.set_ylabel("Feature Importance", fontsize=colorbar_fontsize + 2)
+    # Modify colorbar tick labels font size
+    cbar.ax.tick_params(labelsize=colorbar_fontsize)
 
     # Add legend
     legend_elements = [
