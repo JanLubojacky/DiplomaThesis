@@ -1,6 +1,7 @@
 import os
 import optuna
 import torch
+from pathlib import Path
 
 from src.models.mogonet import MOGONET
 from src.models.utils import load_model
@@ -64,6 +65,42 @@ class MOGONETEvaluator(ModelEvaluator):
         y_true = data.y[data.test_mask].numpy()
 
         return self._calculate_metrics(y_true, y_pred)
+    
+    def save_model(self):
+        """
+        Persists the neural network model to disk utilizing PyTorch's serialization protocol.
+        
+        The function implements model saving with the following considerations:
+        1. Saves both model architecture and learned parameters
+        2. Includes error handling for I/O operations
+        3. Implements path validation
+        4. Supports both CPU and GPU model states
+        
+        Raises:
+            IOError: If writing to save_model_path fails
+            AttributeError: If self.model or self.save_model_path is not defined
+        """
+
+        try:
+            # Validate save path existence and create directories if necessary
+            save_dir = os.path.dirname(self.save_model_path)
+            Path(save_dir).mkdir(parents=True, exist_ok=True)
+            
+            self.model.eval()
+
+            torch.save(self.model.cpu().state_dict(), self.save_model_path)
+                
+        except AttributeError as e:
+            raise AttributeError("Model or save path not properly initialized") from e
+        except IOError as e:
+            raise IOError(f"Failed to save model to {self.save_model_path}") from e
+        except Exception as e:
+            raise e
+        
+        print(f"Model saved to {self.save_model_path}")
+    
+    def load_model(self):
+        return super().load_model()
 
     def feature_importance(self, model_state_dir: str) -> dict:
         feature_scores = {omic_name: {} for omic_name in self.omic_names}

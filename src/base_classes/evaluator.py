@@ -15,11 +15,11 @@ class ModelEvaluator(ABC):
         data_manager: OmicDataManager,
         n_trials: int = 30,
         verbose: bool = True,
-        save_model: bool = False,
+        save_model_path: bool = None,
     ):
         self.n_trials = n_trials
         self.verbose = verbose
-        self.save_model = save_model
+        self.save_model_path = save_model_path
         self.data_manager = data_manager
         self.best_score = 0.0
         self.best_results = {
@@ -73,6 +73,8 @@ class ModelEvaluator(ABC):
                     print(f"New best score: {current_score:.3f}")
                     self.print_best_results()
                     print(fold_scores)
+                if self.save_model_path:
+                    self.save_model()
 
             return current_score
 
@@ -165,5 +167,12 @@ class ModelEvaluator(ABC):
     def save_model(self):
         """
         If we want to save the best model during evaluation this method should implement that
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def load_model(self):
+        """
+        If we want to load the best model during evaluation this method should implement that
         """
         raise NotImplementedError
