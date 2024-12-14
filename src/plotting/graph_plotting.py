@@ -34,8 +34,8 @@ def create_multi_omic_network(
     mrna_genes = list(mrna_dict.keys())
     for i in range(len(mrna_genes)):
         for j in range(len(mrna_genes)):
-            # if i == j:
-            #     continue
+            if i == j:  # ignore self-loops
+                continue
             if mrna_A[i, j] == 1:
                 G.add_edge(mrna_genes[i], mrna_genes[j], edge_type="mRNA-mRNA")
 
@@ -57,15 +57,13 @@ def create_multi_omic_network(
     G.remove_nodes_from(list(nx.isolates(G)))
 
     # Find nodes that only have self-loops
-    nodes_to_remove = []
-    for node in G.nodes():
-        neighbors = list(G.neighbors(node))
-        # Check if the node only has itself as a neighbor
-        if len(neighbors) == 1 and neighbors[0] == node:
-            nodes_to_remove.append(node)
-
-    # Remove the identified nodes
-    G.remove_nodes_from(nodes_to_remove)
+    # nodes_to_remove = []
+    # for node in G.nodes():
+    #     neighbors = list(G.neighbors(node))
+    #     # Check if the node only has itself as a neighbor
+    #     if len(neighbors) == 1 and neighbors[0] == node:
+    #         nodes_to_remove.append(node)
+    # G.remove_nodes_from(nodes_to_remove)
 
     return G
 

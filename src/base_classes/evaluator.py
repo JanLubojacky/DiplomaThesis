@@ -15,9 +15,11 @@ class ModelEvaluator(ABC):
         data_manager: OmicDataManager,
         n_trials: int = 30,
         verbose: bool = True,
+        save_model: bool = False,
     ):
         self.n_trials = n_trials
         self.verbose = verbose
+        self.save_model = save_model
         self.data_manager = data_manager
         self.best_score = 0.0
         self.best_results = {
@@ -147,15 +149,21 @@ class ModelEvaluator(ABC):
     @abstractmethod
     def create_model(self, trial: optuna.Trial):
         """Create and safe model instance with trial parameters"""
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def train_model(self, train_x, train_y) -> None:
         """Train model implementation"""
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def test_model(self, test_x, test_y) -> dict:
         """Test model implementation"""
-        pass
+        raise NotImplementedError
 
+    @abstractmethod
+    def save_model(self):
+        """
+        If we want to save the best model during evaluation this method should implement that
+        """
+        raise NotImplementedError
