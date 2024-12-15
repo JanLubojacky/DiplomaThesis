@@ -15,13 +15,12 @@ class ModelEvaluator(ABC):
         data_manager: OmicDataManager,
         n_trials: int = 30,
         verbose: bool = True,
-        save_model_path: bool = None,
     ):
         self.n_trials = n_trials
         self.verbose = verbose
-        self.save_model_path = save_model_path
         self.data_manager = data_manager
         self.best_score = 0.0
+        self.fold_idx = None
         self.best_results = {
             "acc": 0.0,
             "f1_macro": 0.0,
@@ -40,6 +39,8 @@ class ModelEvaluator(ABC):
             for fold_idx in range(self.data_manager.n_splits):
                 # Get train and test splits
                 train_x, test_x, train_y, test_y = self.data_manager.get_split(fold_idx)
+
+                self.fold_idx = fold_idx
 
                 # Creates model and saves it as a class attribute
                 self.create_model(trial)
@@ -73,8 +74,6 @@ class ModelEvaluator(ABC):
                     print(f"New best score: {current_score:.3f}")
                     self.print_best_results()
                     print(fold_scores)
-                if self.save_model_path:
-                    self.save_model()
 
             return current_score
 
@@ -163,16 +162,16 @@ class ModelEvaluator(ABC):
         """Test model implementation"""
         raise NotImplementedError
 
-    @abstractmethod
-    def save_model(self):
-        """
-        If we want to save the best model during evaluation this method should implement that
-        """
-        raise NotImplementedError
-    
-    @abstractmethod
-    def load_model(self):
-        """
-        If we want to load the best model during evaluation this method should implement that
-        """
-        raise NotImplementedError
+    # @abstractmethod
+    # def save_model(self):
+    #     """
+    #     If we want to save the best model during evaluation this method should implement that
+    #     """
+    #     raise NotImplementedError
+
+    # @abstractmethod
+    # def load_model(self):
+    #     """
+    #     If we want to load the best model during evaluation this method should implement that
+    #     """
+    #     raise NotImplementedError

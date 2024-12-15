@@ -13,7 +13,7 @@ def plot_top_genes(importance_dict: dict, n_genes=10, title=None, save_file=None
     """
     # Sort genes by absolute importance and get top n_genes
     sorted_genes = sorted(
-        importance_dict.items(), key=lambda x: abs(x[1]), reverse=True
+        importance_dict.items(), key=lambda x: x[1], reverse=True
     )[:n_genes]
 
     # Sort by actual importance value for plotting

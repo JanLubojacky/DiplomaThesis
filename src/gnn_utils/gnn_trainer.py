@@ -92,10 +92,7 @@ class GNNTrainer:
         """Save the best model state."""
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         torch.save(
-            {
-                "model_state_dict": self.model.state_dict(),
-                "best_val_score": self.best_val_score,
-            },
+            self.model.cpu().state_dict(),
             save_path,
         )
         print(f"Saved new best model to {save_path}")
@@ -105,7 +102,6 @@ class GNNTrainer:
         data: pyg.data.HeteroData,
         epochs: int,
         log_interval: int = 1,
-        save_path: Optional[str] = None,
     ) -> None:
         """Train the model."""
         # Initial validation
@@ -132,8 +128,10 @@ class GNNTrainer:
                 if val_score > self.best_val_score:
                     self.best_val_score = val_score
                     self.best_pred = val_pred
-                    if save_path:
-                        self.save_model(save_path)
+                    print(f"New best validation score: {val_score:.4f}")
+                    print(self.save_model_path)
+                    if self.save_model_path is not None:
+                        self.save_model(self.save_model_path)
 
                 if epoch % log_interval == 0:
                     # Get predictions for all splits
