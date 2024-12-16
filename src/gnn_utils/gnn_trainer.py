@@ -95,7 +95,6 @@ class GNNTrainer:
             self.model.cpu().state_dict(),
             save_path,
         )
-        print(f"Saved new best model to {save_path}")
 
     def train(
         self,
@@ -128,8 +127,6 @@ class GNNTrainer:
                 if val_score > self.best_val_score:
                     self.best_val_score = val_score
                     self.best_pred = val_pred
-                    print(f"New best validation score: {val_score:.4f}")
-                    print(self.save_model_path)
                     if self.save_model_path is not None:
                         self.save_model(self.save_model_path)
 

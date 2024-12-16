@@ -50,6 +50,7 @@
 - [ ] relationship between circrnas and mrnas https://circinteractome.nia.nih.gov/
 - [ ] transcription factors should be included in the network creation
 - [ ] fix the feature preprocessing, COV selection should be after log transform, since log transform is used to stabilize variance and normalize the data and COV relies on the data following normal distribution, then we do not even need to use COV and can use simple variance filtering
+- [ ] vytisteni diplomky
 
 ### Questions
 - how to cite table of known MDS related GO terms?

@@ -4,6 +4,8 @@ import torch
 from tqdm import tqdm
 from copy import deepcopy
 
+from sklearn.metrics import f1_score, accuracy_score
+
 from src.models.mogonet import MOGONET
 from src.base_classes.evaluator import ModelEvaluator
 from src.base_classes.omic_data_loader import OmicDataManager
@@ -107,6 +109,15 @@ class MOGONETEvaluator(ModelEvaluator):
 
             # Load model state for this fold
             self.load_model(f"{model_states_dir}/{model_checkpoints[fold_idx]}")
+
+            # Print scores for this fold
+            pred_y = self.model(train_x).argmax(dim=1)
+            acc = accuracy_score(train_x.y, pred_y)
+            f1_macro = f1_score(train_x.y, pred_y, average="macro")
+            f1_weighted = f1_score(train_x.y, pred_y, average="weighted")
+            print(
+                f"Fold {fold_idx}: Acc: {acc:.4f}, F1 Macro: {f1_macro:.4f}, F1 Weighted: {f1_weighted:.4f}"
+            )
 
             with torch.no_grad():
                 # Get baseline predictions and loss for all samples
