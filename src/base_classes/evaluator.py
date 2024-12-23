@@ -47,6 +47,7 @@ class ModelEvaluator(ABC):
 
                 # Train and test model, pass X and y
                 self.train_model(train_x, train_y)
+
                 metrics = self.test_model(test_x, test_y)
                 fold_scores.append(metrics)
 
@@ -161,17 +162,3 @@ class ModelEvaluator(ABC):
     def test_model(self, test_x, test_y) -> dict:
         """Test model implementation"""
         raise NotImplementedError
-
-    # @abstractmethod
-    # def save_model(self):
-    #     """
-    #     If we want to save the best model during evaluation this method should implement that
-    #     """
-    #     raise NotImplementedError
-
-    # @abstractmethod
-    # def load_model(self):
-    #     """
-    #     If we want to load the best model during evaluation this method should implement that
-    #     """
-    #     raise NotImplementedError

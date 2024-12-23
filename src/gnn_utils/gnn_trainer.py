@@ -125,6 +125,11 @@ class GNNTrainer:
 
                 # Save model if validation score improves
                 if val_score > self.best_val_score:
+                    train_all_pred = out.argmax(dim=1).cpu()
+                    metrics = self._compute_metrics(
+                        train_all_pred, data.y.cpu()
+                    )
+
                     self.best_val_score = val_score
                     self.best_pred = val_pred
                     if self.save_model_path is not None:

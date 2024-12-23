@@ -20,11 +20,13 @@ class MOGONETEvaluator(ModelEvaluator):
         verbose: bool = True,
         params: dict = {},
         save_model_path: bool = None,
+        seed: int = 12345,
     ):
         """ """
         super().__init__(data_manager, n_trials, verbose)
         self.params = params
         self.model = None
+        self.seed = seed
         self.save_model_path = save_model_path
 
         data, _, _, _ = data_manager.get_split(0)
@@ -47,6 +49,7 @@ class MOGONETEvaluator(ModelEvaluator):
             integrator_type=self.params["integrator_type"],
             integration_in_dim=self.params["integration_in_dim"],
             vcdn_hidden_channels=self.params["vcdn_hidden_channels"],
+            seed=self.seed,
         )
         if self.save_model_path:
             save_model_path = f"{self.save_model_path}_{self.fold_idx}.pt"
@@ -82,7 +85,7 @@ class MOGONETEvaluator(ModelEvaluator):
         self.model.eval()
 
     def feature_importance(
-        self, model_states_dir: str, n_permutations: int = 5
+        self, model_states_dir: str, n_permutations: int = 6, feature_importance = {},
     ) -> dict:
         """
         Calculate feature importance scores using permutation importance method averaged over multiple shuffles.
@@ -95,7 +98,6 @@ class MOGONETEvaluator(ModelEvaluator):
         Returns:
             dict: Nested dictionary containing importance scores for each feature in each omic
         """
-        feature_importance = {}
         permutation_scores = {}  # Store scores for each permutation
 
         # Get model checkpoint files
@@ -159,6 +161,8 @@ class MOGONETEvaluator(ModelEvaluator):
 
         # Average the scores across all permutations and folds
         for feature_name, scores in permutation_scores.items():
-            feature_importance[feature_name] = sum(scores) / len(scores)
+            if not feature_name in feature_importance:
+                feature_importance[feature_name] = 0
+            feature_importance[feature_name] += sum(scores) / len(scores)
 
         return feature_importance
