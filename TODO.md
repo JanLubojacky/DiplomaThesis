@@ -72,7 +72,9 @@
 - [ ] 9. Conclusions
 
 ### Thesis notes
-- [ ] cite ALIs table with his thesis
 - cite uhkt papers with connections to MDS data
   - https://www.mdpi.com/2073-4409/9/4/794
   - https://febs.onlinelibrary.wiley.com/doi/10.1002/1878-0261.13486
+- [ ] make sure that all interactions are cited
+- [ ] rewrite the data preprocessing section
+- [ ] MOGONET enriched pathways and gene ontologies for MDS disease
