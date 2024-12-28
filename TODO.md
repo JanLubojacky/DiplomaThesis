@@ -21,6 +21,15 @@
     - [x] sample based gnn
     - [x] bipartite gnn
     - [ ] feature gnn
+        for each gene create a node with `[mrna, meth, cnv]`
+        create additional nodes for mirna with `[mirna, 0, 0]`
+
+        additionally do what is done by Bingjun Li and Sheida Nabavi in 2023
+        add a parallel network (concat of all features probably easiest?)
+        possibly integrate with a cnn => should be better
+        we could also aggregate the mirnas in the same way methylations, (this would probably have to be dynamic to be able to get feature importance for mirnas)
+        are aggregated and add edges for mirnas to the network
+
 - [x] differential expression analysis with DeSeq2 (probably could reuse the one that is already finished)
 - [ ] thesis mentions DiplomaThesis repo as a reference, should probably delete the original from git and rename the cleaned up DiplomaThesis2 to DiplomaThesis
 
