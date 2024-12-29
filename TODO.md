@@ -30,11 +30,8 @@
         we could also aggregate the mirnas in the same way methylations, (this would probably have to be dynamic to be able to get feature importance for mirnas)
         are aggregated and add edges for mirnas to the network
 
-- [x] differential expression analysis with DeSeq2 (probably could reuse the one that is already finished)
-- [ ] thesis mentions DiplomaThesis repo as a reference, should probably delete the original from git and rename the cleaned up DiplomaThesis2 to DiplomaThesis
-
 ### Hyperparameter and model selection comparision
-- [ ] should improve the hyperparameter search report for the gnn models, this should also probably be done on each dataset separately
+- [ ] could improve the hyperparameter search report for the gnn models, this should also probably be done on each dataset separately
   - [ ] e.g. should show the performance of MOGONET, BipartiteGNN and FeatureGNN changes wrt to the hyperparameters on each dataset
 - [ ] similarily the comparision of different model architectures and setups could also be improved
 
