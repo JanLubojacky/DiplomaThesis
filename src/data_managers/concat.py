@@ -20,6 +20,13 @@ class CatOmicDataManager(OmicDataManager):
         # self.feature_names = train_x.columns
         self.feature_names = None
 
+    def _prefix_columns(self, df: pl.DataFrame, omic_type: str) -> pl.DataFrame:
+        """
+        Add omic type as prefix to column names to ensure uniqueness
+        """
+        new_columns = {col: f"{omic_type}_{col}" for col in df.columns}
+        return df.rename(new_columns)
+
     def get_split(self, fold_idx: int):
         """
         Given a fold_idx returns train_x, test_x, train_y, test_y where
@@ -39,6 +46,10 @@ class CatOmicDataManager(OmicDataManager):
 
             train_df = train_df.drop(class_column, sample_column)
             test_df = test_df.drop(class_column, sample_column)
+
+            # Add omic type prefix to columns
+            train_df = self._prefix_columns(train_df, omic)
+            test_df = self._prefix_columns(test_df, omic)
 
             train_x.append(train_df)
             test_x.append(test_df)

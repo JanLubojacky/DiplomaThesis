@@ -116,21 +116,34 @@ class OmicDataSplitter:
             X_test (np.ndarray): of shape (n_samples, n_features)
             y (np.ndarray): of shape (n_samples,)
             type (str): variance or mrmr
+
+        Returns:
+            tuple: (train_df, test_df) as polars DataFrames with selected (or all) features
         """
+        # Convert inputs to pandas DataFrames
+        train_df = pd.DataFrame(X_train, columns=self.feature_names)
+        test_df = pl.DataFrame(X_test, schema=self.feature_names)
+
+        # Check if feature selection should be performed
+        if (
+            self.n_features is None
+            or self.n_features <= 0
+            or self.n_features >= len(self.feature_names)
+        ):
+            # Return all features if n_features is invalid or larger than available features
+            return pl.DataFrame(train_df), test_df
+
         match type:
             case "variance":
                 raise NotImplementedError()
             case "mrmr":
                 # convert the dataframes to pandas for use with mrmr
-                train_df = pd.DataFrame(X_train, columns=self.feature_names)
                 class_df = pd.Series(y, name="class")
                 selected_features = mrmr_classif(train_df, class_df, K=self.n_features)
 
                 # construct polars dataframes with the selected features
                 train_df = pl.DataFrame(train_df).select(selected_features)
-                test_df = pl.DataFrame(X_test, schema=self.feature_names).select(
-                    selected_features
-                )
+                test_df = test_df.select(selected_features)
             case _:
                 raise ValueError("type must be either 'variance' or 'mrmr'")
 
@@ -182,6 +195,7 @@ class FullOmicDataProcessor:
     Processes the full dataset without splitting it into train and test sets.
     Useful for fitting models to the full dataset after evaluation to obtain feature importances.
     """
+
     def __init__(
         self,
         df: pl.DataFrame,

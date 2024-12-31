@@ -25,7 +25,6 @@ class BiRGATEvaluator(ModelEvaluator):
         self.in_channels = [data.x_dict[omics].shape[1] for omics in data.x_dict.keys()]
         self.omic_names = list(data.x_dict.keys())
 
-
     def create_model(self, trial: optuna.Trial):
         """Create and return model instance with trial parameters"""
 
@@ -46,11 +45,13 @@ class BiRGATEvaluator(ModelEvaluator):
         )
         self.trainer = GNNTrainer(
             model=self.model,
-            optimizer=torch.optim.Adam(self.model.parameters(), lr=1e-3), # this could be later set by the trial
+            optimizer=torch.optim.Adam(
+                self.model.parameters(), lr=1e-3
+            ),  # this could be later set by the trial
             loss_fn=torch.nn.CrossEntropyLoss(),
             # params={
-            #     "l1_lambda": 0.01, # this could be later set by the trial
-            # }
+            #     "l1_lambda": 0.01,  # this could be later set by the trial
+            # },
         )
 
     def train_model(self, data, _) -> None:
@@ -63,4 +64,3 @@ class BiRGATEvaluator(ModelEvaluator):
         y_pred = self.trainer.best_pred
         y_true = data.y[data.test_mask].numpy()
         return self._calculate_metrics(y_true, y_pred)
-

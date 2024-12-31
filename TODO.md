@@ -45,11 +45,16 @@
 - [ ] Describe feature importance in more detail (the cross validation part isnt mentioned anywhere yet)
 
 ### Finishline
-- [ ] Redo feature importances for mogonet with agrregations for disease, risk and mutation
 - [ ] Evaluations for additoinal datasets
   - [ ] BRCA
   - [ ] LGG
-- [ ] Add feature graph model
+- [ ] Add feature graph model - wont make it likely
+- [ ] Properly document all experiments for mogonet with different hyperparameters and architecture changes
+  - [ ] integration models
+  - [ ] gat vs gcn
+  - [ ] graph style
+  - [ ] avg degree parameter
+- [ ] The same for the bipartite gnn model
 
 ### Target validation
 - [mirnas](https://www.cuilab.cn/hmdd)
@@ -78,9 +83,8 @@
 - [ ] 9. Conclusions
 
 ### Thesis notes
-- cite uhkt papers with connections to MDS data
+- [x] cite uhkt papers with connections to MDS data
   - https://www.mdpi.com/2073-4409/9/4/794
   - https://febs.onlinelibrary.wiley.com/doi/10.1002/1878-0261.13486
 - [ ] make sure that all interactions are cited
 - [ ] rewrite the data preprocessing section
-- [ ] MOGONET enriched pathways and gene ontologies for MDS disease

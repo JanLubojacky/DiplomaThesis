@@ -1,6 +1,61 @@
 import polars as pl
 import torch
 from tqdm import tqdm
+import requests
+import json
+
+
+def gene_names_to_ensembl_ids(gene_names):
+    """
+    Convert a list of gene names to Ensembl IDs using the Ensembl REST API.
+
+    Args:
+        gene_names: List of gene symbols/names to convert
+
+    Returns:
+        Dictionary mapping gene names to their Ensembl IDs
+
+    Raises:
+        requests.exceptions.RequestException: If API request fails
+    """
+    server = "https://rest.ensembl.org"
+    ext = "/lookup/symbol/homo_sapiens"
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+
+    # Initialize results dictionary
+    gene_id_map = {}
+
+    # Process in batches of 1000 (API limit)
+    batch_size = 1000
+    for i in range(0, len(gene_names), batch_size):
+        batch = gene_names[i : i + batch_size]
+
+        # Prepare request payload
+        payload = {"symbols": batch}
+
+        try:
+            r = requests.post(server + ext, headers=headers, data=json.dumps(payload))
+            r.raise_for_status()
+
+            # Process response
+            decoded = r.json()
+            print(f"Decoded response: {decoded}")
+
+            # Extract Ensembl IDs from response
+            for gene_name, gene_data in decoded.items():
+                if gene_data and "id" in gene_data:
+                    gene_id_map[gene_name] = gene_data["id"]
+                else:
+                    gene_id_map[gene_name] = None
+
+        except requests.exceptions.RequestException as e:
+            print(
+                f"Error processing batch starting at index {i}: {str(e)}",
+                file=sys.stderr,
+            )
+            raise
+
+    return gene_id_map
 
 
 def ensembl_ids_to_gene_names(
@@ -65,7 +120,7 @@ def get_mirna_genes_circrna_interactions(
 def get_mirna_gene_interactions(
     mirna_names,
     mrna_names,
-    mirna_mrna_db="interaction_data/mirna_mrna_interactions_DB.csv",
+    mirna_mrna_db="interaction_data/mirna_gene.csv",
 ):
     """
     Args:
@@ -97,7 +152,7 @@ def get_mirna_gene_interactions(
         ] = 1
 
     if mirna_mrna_A.sum() == 0:
-        print("WARNING: No interactions found, are all inputs correct?")
+        print("MIRNA-GENE WARNING: No interactions found, are all inputs correct?")
 
     return mirna_mrna_A
 

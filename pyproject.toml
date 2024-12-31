@@ -25,10 +25,13 @@ dependencies = [
     "pandas>=2.2.3",
     "networkx>=3.4.2",
     "gseapy>=1.1.4",
+    "ipywidgets>=8.1.5",
 ]
 
-[tool.pyright]
+[tool.basedpyright]
 typeCheckingMode = "off"
+reportUndefinedVariable = "error"
+reportMissingImports = "error"
 
 [tool.ruff]
 line-length = 88

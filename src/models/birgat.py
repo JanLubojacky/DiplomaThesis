@@ -28,6 +28,12 @@ class BiRGAT(torch.nn.Module):
         torch.manual_seed(seed)
         super().__init__()
 
+        self.proj_layers = torch.nn.ModuleDict(
+            {
+                omic: torch.nn.Linear(input_dims[omic], hidden_channels[0])
+                for omic in omic_channels
+            }
+        )
         self.omic_channels = omic_channels
         self.heads = heads
         self.dropout = dropout
@@ -146,6 +152,9 @@ class BiRGAT(torch.nn.Module):
 
         x_dict = data.x_dict
         edge_dict = data.edge_index_dict
+
+        for key in self.omic_channels:
+            x_dict[key] = self.proj_layers[key](x_dict[key])
 
         x1 = self.conv1(x_dict, edge_dict)
         for key in self.omic_channels:
